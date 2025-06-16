@@ -13,7 +13,7 @@ def create_app():
 
     # Configuration
     app.config['SECRET_KEY'] = 'supersecret'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../instance/smartbank.db'
+   app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///smartbank.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Initialize extensions
