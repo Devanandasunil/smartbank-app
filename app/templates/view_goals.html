@@ -1,0 +1,54 @@
+   {% extends "base.html" %}
+
+   {% block title %}Goal Details{% endblock %}
+
+   {% block content %}
+   <div class="container mt-5">
+       <h2>Goal Details</h2>
+       <div class="card">
+           <div class="card-body">
+               <h5 class="card-title">Target: ${{ goal.target_amount }}</h5>
+               <p class="card-text">Deadline: {{ goal.deadline.strftime('%B %d, %Y') }}</p>
+               <p class="card-text">Status: {% if goal.completed %}Completed{% else %}In Progress{% endif %}</p>
+
+               <h6 class="card-subtitle mb-2 text-muted">Saving Mode</h6>
+               <form method="POST">
+                   <div class="mb-3">
+                       <label for="saving_mode" class="form-label">Choose your saving mode:</label>
+                       <select class="form-select" id="saving_mode" name="saving_mode">
+                           <option value="None" {% if goal.saving_mode == 'None' %}selected{% endif %}>None</option>
+                           <option value="Daily" {% if goal.saving_mode == 'Daily' %}selected{% endif %}>Daily</option>
+                           <option value="Weekly" {% if goal.saving_mode == 'Weekly' %}selected{% endif %}>Weekly</option>
+                           <option value="Monthly" {% if goal.saving_mode == 'Monthly' %}selected{% endif %}>Monthly</option>
+                           <option value="Yearly" {% if goal.saving_mode == 'Yearly' %}selected{% endif %}>Yearly</option>
+                       </select>
+                   </div>
+
+                   <div class="mb-3">
+                       <label for="daily_amount" class="form-label">Daily Amount</label>
+                       <input type="number" step="0.01" class="form-control" id="daily_amount" name="daily_amount" placeholder="Enter daily amount" value="{{ goal.daily_amount }}">
+                   </div>
+
+                   <div class="mb-3">
+                       <label for="weekly_amount" class="form-label">Weekly Amount</label>
+                       <input type="number" step="0.01" class="form-control" id="weekly_amount" name="weekly_amount" placeholder="Enter weekly amount" value="{{ goal.weekly_amount }}">
+                   </div>
+
+                   <div class="mb-3">
+                       <label for="monthly_amount" class="form-label">Monthly Amount</label>
+                       <input type="number" step="0.01" class="form-control" id="monthly_amount" name="monthly_amount" placeholder="Enter monthly amount" value="{{ goal.monthly_amount }}">
+                   </div>
+
+                   <div class="mb-3">
+                       <label for="yearly_amount" class="form-label">Yearly Amount</label>
+                       <input type="number" step="0.01" class="form-control" id="yearly_amount" name="yearly_amount" placeholder="Enter yearly amount" value="{{ goal.yearly_amount }}">
+                   </div>
+
+                   <button type="submit" class="btn btn-success">Update Goal</button>
+                   <a href="{{ url_for('main.goals') }}" class="btn btn-secondary">Back to Goals</a>
+               </form>
+           </div>
+       </div>
+   </div>
+   {% endblock %}
+   

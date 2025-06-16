@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4 text-danger">❌ Rejected Loans</h2>
+
+    {% if loans %}
+        <table class="table table-striped table-hover">
+            <thead class="table-danger">
+                <tr>
+                    <th>ID</th>
+                    <th>User</th>
+                    <th>Amount</th>
+                    <th>Reason</th>
+                    <th>Rejected On</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in loans %}
+                <tr>
+                    <td>{{ loan.id }}</td>
+                    <td>{{ loan.user.name }} ({{ loan.user.email }})</td>
+                    <td>₹{{ loan.amount }}</td>
+                    <td>{{ loan.reason }}</td>
+                    <td>{{ loan.updated_at.strftime('%Y-%m-%d %H:%M') if loan.updated_at else "N/A" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="text-muted">No rejected loans found.</p>
+    {% endif %}
+</div>
+{% endblock %}

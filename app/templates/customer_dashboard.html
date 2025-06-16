@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="container mt-5">
+    <h1>Welcome to Your Dashboard, {{ current_user.name }}!</h1>
+
+    <div class="mb-4">
+      <p>Here are some useful links:</p>
+      <ul>
+        <li><a href="{{ url_for('customer.emi_calculator') }}">EMI Calculator</a></li>
+        <!-- Add other links as needed -->
+      </ul>
+    </div>
+
+    <div class="card shadow-sm p-3">
+      <h2>Important Information About Loans</h2>
+
+      <h3>International Transactions:</h3>
+      <p>
+        Certain international transactions may be more complex and require
+        in-person assistance from the bank.
+      </p>
+
+      <h3>Need for Advice:</h3>
+      <p>
+        For financial advice or guidance, a visit to the branch can provide
+        the opportunity to discuss your specific financial needs with a professional.
+      </p>
+      <img src="https://placehold.com/600x200?text=SmartBank+Info" alt="SmartBank Information" class="img-fluid rounded">
+    </div>
+  </div>
+{% endblock %}

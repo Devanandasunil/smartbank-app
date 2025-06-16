@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Registration - SmartBank{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Staff Registration</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-control") }}
+            {% for error in form.name.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.email.label(class="form-label") }}
+            {{ form.email(class="form-control") }}
+            {% for error in form.email.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.mobile_number.label(class="form-label") }}
+            {{ form.mobile_number(class="form-control") }}
+            {% for error in form.mobile_number.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.staff_key.label(class="form-label") }}
+            {{ form.staff_key(class="form-control") }}
+            {% for error in form.staff_key.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.password.label(class="form-label") }}
+            {{ form.password(class="form-control") }}
+            {% for error in form.password.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.confirm_password.label(class="form-label") }}
+            {{ form.confirm_password(class="form-control") }}
+            {% for error in form.confirm_password.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.submit(class="btn btn-success") }}
+        </div>
+
+        <p class="mt-3">
+            Already have an account? <a href="{{ url_for('staff.login') }}">Login here</a>
+        </p>
+    </form>
+</div>
+
+{% if current_user.is_authenticated %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mt-4">
+  <div class="container-fluid">
+    <button type="button" id="sidebarCollapse" class="me-3">&#9776;</button>
+    <a class="navbar-brand" href="#">SmartBank</a>
+  </div>
+</nav>
+{% endif %}
+{% endblock %}

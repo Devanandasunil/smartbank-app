@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SmartBank{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <script>
+        // Force reload when back button is used to prevent stale pages
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                window.location.reload();
+            }
+        });
+    </script>
+{% endblock %}
+
+{% block content %}
+    {% if current_user.is_staff %}
+        <h2>Staff Dashboard</h2>
+        <p>Welcome, {{ username }}</p>
+        <!-- Staff-specific content can go here -->
+    {% else %}
+        <h2>Hello, {{ username }}</h2>
+        {% if account_number %}
+          <p>Account Number: {{ account_number }}</p>
+          <p>Balance: ₹{{ balance }}</p>
+        {% else %}
+          <p>No account found.</p>
+        {% endif %}
+    {% endif %}
+{% endblock %}

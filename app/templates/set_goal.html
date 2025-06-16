@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Set Financial Goal{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4">Set Financial Goal</h2>
+  <form method="POST">
+    {{ form.hidden_tag() }}
+
+    <div class="mb-3">
+      <label for="{{ form.target_amount.id }}" class="form-label">Target Amount</label>
+      {{ form.target_amount(class="form-control", placeholder="Enter target amount") }}
+      {% for error in form.target_amount.errors %}
+        <div class="text-danger">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="mb-3">
+      <label for="{{ form.deadline.id }}" class="form-label">Deadline (YYYY-MM-DD)</label>
+      {{ form.deadline(class="form-control", placeholder="dd-mm-yyyy") }}
+      <small class="form-text text-muted">Format: YYYY-MM-DD (e.g., 2025-12-31)</small>
+      {% for error in form.deadline.errors %}
+        <div class="text-danger">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="mb-3">
+      {{ form.submit(class="btn btn-primary") }}
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary ms-2">Back to Dashboard</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

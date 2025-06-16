@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Login - SmartBank{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Staff Login</h2>
+        <a href="{{ url_for('main.home') }}" class="btn btn-outline-secondary">← Back to Home</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+            {{ form.username.label(class="form-label") }}
+            {{ form.username(class="form-control", autocomplete="off") }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.password.label(class="form-label") }}
+            {{ form.password(class="form-control", autocomplete="off") }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.submit(class="btn btn-primary w-100") }}
+        </div>
+
+        <div class="text-center mt-3">
+            <p>Don't have an account? <a href="{{ url_for('staff.staff_register') }}">Register here</a></p>
+            <p>
+                Forgot your
+                <a href="{{ url_for('staff.forgot_username') }}">Username</a> or
+                <a href="{{ url_for('staff.forgot_password') }}">Password</a>?
+            </p>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Disable browser back button after logout
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+    window.addEventListener('popstate', function (event) {
+        window.history.pushState(null, null, window.location.href);
+    });
+</script>
+
+{% endblock %}

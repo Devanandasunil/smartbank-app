@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Transactions for {{ user.name }} ({{ user.username }})</h2>
+
+    {% if transactions %}
+        <table class="table table-striped mt-4">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for tx in transactions %}
+                <tr>
+                    <td>{{ tx.date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ 'Credit' if tx.amount > 0 else 'Debit' }}</td>
+                    <td>₹{{ tx.amount }}</td>
+                    <td>{{ tx.status }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No transactions available.</p>
+    {% endif %}
+</div>
+{% endblock %}

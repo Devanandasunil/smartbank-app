@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Login</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+            {{ form.email.label(class="form-label") }}
+            {{ form.email(class="form-control", autofocus=True, autocomplete="off") }}
+            {% for error in form.email.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.password.label(class="form-label") }}
+            {{ form.password(class="form-control", autocomplete="off") }}
+            {% for error in form.password.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.submit(class="btn btn-primary") }}
+        </div>
+    </form>
+    <a href="{{ url_for('main.home') }}" class="btn btn-secondary w-100 mt-3">← Back to Home</a>
+    <p><a href="{{ url_for('staff.forgot_password') }}">Forgot your password?</a></p>
+    <p>Don't have an account? <a href="{{ url_for('customer.register') }}">Register here</a>.</p>
+    
+    <hr>
+    <h5>OR Login with Face</h5>
+
+    <video id="video" width="320" height="240" autoplay></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <form method="POST" action="{{ url_for('main.face_login') }}">
+      <input type="hidden" name="face_image" id="face_image">
+      <button type="submit" onclick="capture()" class="btn btn-primary mt-2">Login with Face</button>
+    </form>
+
+    <script>
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      const faceImageInput = document.getElementById('face_image');
+
+      navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+        video.srcObject = stream;
+      });
+
+      function capture() {
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        faceImageInput.value = canvas.toDataURL('image/jpeg');
+      }
+    </script>
+</div>
+
+<script>
+    // Disable browser back button after logout
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+    window.addEventListener('popstate', function (event) {
+        window.history.pushState(null, null, window.location.href);
+    });
+</script>
+{% endblock %}

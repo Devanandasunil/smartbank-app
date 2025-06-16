@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Welcome, {{ current_user.username }}</h2>
+<p>Account Number: {{ account.id }}</p>
+<p>Balance: ₹{{ account.balance }}</p>
+
+<!-- Buttons -->
+<form action="{{ url_for('main.deposit') }}" method="POST">
+    <input type="number" step="0.01" name="amount" placeholder="Deposit amount" required>
+    <button type="submit">Deposit</button>
+</form>
+
+<form action="{{ url_for('main.withdraw') }}" method="POST">
+    <input type="number" step="0.01" name="amount" placeholder="Withdraw amount" required>
+    <button type="submit">Withdraw</button>
+</form>
+
+<form action="{{ url_for('main.transfer') }}" method="POST">
+    <input type="text" name="recipient_account" placeholder="Recipient Account ID" required>
+    <input type="number" step="0.01" name="amount" placeholder="Transfer amount" required>
+    <button type="submit">Transfer</button>
+</form>
+
+<h3>Loans</h3>
+<ul>
+{% for loan in loans %}
+    <li>Loan ID: {{ loan.id }} | Amount: ₹{{ loan.amount }} | Status: {{ loan.status }}
+        {% if loan.emi_due > 0 %}
+            <form method="post" action="{{ url_for('main.pay_emi', loan_id=loan.id) }}">
+                <button type="submit">Pay EMI (₹{{ loan.emi_due }})</button>
+            </form>
+        {% endif %}
+    </li>
+{% endfor %}
+</ul>
+
+<a href="{{ url_for('main.apply_loan_page') }}"><button>Apply for Loan</button></a>
+<a href="{{ url_for('main.logout') }}"><button>Logout</button></a>
+{% endblock %}

@@ -1,0 +1,38 @@
+<nav id="sidebar" class="bg-dark">
+  <div class="p-3">
+    <h4>Staff Menu</h4>
+    <ul class="nav flex-column">
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('main.home') }}">
+          <i class="bi bi-house"></i> Home
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'staff.dashboard' %}active{% endif %}" href="{{ url_for('staff.dashboard') }}">Dashboard</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'staff.approve_loans' %}active{% endif %}" href="{{ url_for('staff.approve_loans') }}">Approve Loans</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'staff.view_reports' %}active{% endif %}" href="{{ url_for('staff.view_reports') }}">View Reports / Spam</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'staff.view_customers' %}active{% endif %}" href="{{ url_for('staff.view_customers') }}">View Users & Transactions</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'staff.approved_loans' %}active{% endif %}" href="{{ url_for('staff.approved_loans') }}">Approved Loans</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'staff.rejected_loans' %}active{% endif %}" href="{{ url_for('staff.rejected_loans') }}">Rejected Loans</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-danger fw-bold" href="{{ url_for('staff.logout') }}">🚪 Logout</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-white {% if request.endpoint == 'main.landing' %}active{% endif %}" href="{{ url_for('main.landing') }}">
+          <i class="bi bi-globe"></i> Home
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>

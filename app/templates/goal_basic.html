@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Set Financial Goal{% endblock %}
+{% block content %}
+<div class="container mt-5" style="max-width:600px;">
+    <h2 class="mb-4">Set a New Financial Goal</h2>
+    <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+            {{ form.target_amount.label(class="form-label") }}
+            {{ form.target_amount(class="form-control", placeholder="e.g. 10000.00") }}
+            {% for error in form.target_amount.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+            <div class="form-text">Enter the amount you want to save.</div>
+        </div>
+
+        <div class="mb-3">
+            {{ form.deadline.label(class="form-label") }}
+            {{ form.deadline(class="form-control") }}
+            {% for error in form.deadline.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+            <div class="form-text">Choose your goal deadline.</div>
+        </div>
+
+        <div class="mb-3">
+            {{ form.saving_mode.label(class="form-label") }}
+            {{ form.saving_mode(class="form-select") }}
+            {% for error in form.saving_mode.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+            <div class="form-text">Choose your saving mode.</div>
+        </div>
+
+        <div class="mb-3">
+            {{ form.daily_amount.label(class="form-label") }}
+            {{ form.daily_amount(class="form-control", placeholder="Enter daily amount") }}
+            {% for error in form.daily_amount.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+            <div class="form-text">Enter amount to save daily (if applicable).</div>
+        </div>
+
+        <div class="mb-3">
+            {{ form.weekly_amount.label(class="form-label") }}
+            {{ form.weekly_amount(class="form-control", placeholder="Enter weekly amount") }}
+            {% for error in form.weekly_amount.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+            <div class="form-text">Enter amount to save weekly (if applicable).</div>
+        </div>
+
+        <div class="mb-3">
+            {{ form.monthly_amount.label(class="form-label") }}
+            {{ form.monthly_amount(class="form-control", placeholder="Enter monthly amount") }}
+            {% for error in form.monthly_amount.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+            <div class="form-text">Enter amount to save monthly (if applicable).</div>
+        </div>
+
+        <div class="mb-3">
+            {{ form.yearly_amount.label(class="form-label") }}
+            {{ form.yearly_amount(class="form-control", placeholder="Enter yearly amount") }}
+            {% for error in form.yearly_amount.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+            <div class="form-text">Enter amount to save yearly (if applicable).</div>
+        </div>
+
+        {{ form.submit(class="btn btn-success w-100") }}
+    </form>
+
+    <hr>
+
+    <h3>Your Existing Financial Goals</h3>
+    <ul class="list-group">
+        {% for goal in goals %}
+            <li class="list-group-item">
+                <strong>Target:</strong> ₹{{ "%.2f"|format(goal.target_amount) }} <br>
+                <strong>Deadline:</strong> {{ goal.deadline.strftime('%B %d, %Y') }} <br>
+                <strong>Saving Mode:</strong> {{ goal.saving_mode.value }}
+            </li>
+        {% else %}
+            <li class="list-group-item text-muted">No financial goals set yet.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

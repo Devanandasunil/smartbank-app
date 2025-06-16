@@ -1,0 +1,57 @@
+<nav id="sidebar" class="bg-dark text-white">
+  <div class="p-3">
+    <h4 class="text-white">Menu</h4>
+    <ul class="nav flex-column">
+      <li class="nav-item">
+        <a class="nav-link text-white {% if request.endpoint == 'main.landing' %}active{% endif %}" href="{{ url_for('main.landing') }}">
+          <i class="bi bi-globe"></i> Homepage
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-white {% if request.endpoint == 'customer.dashboard' %}active{% endif %}" href="{{ url_for('customer.dashboard') }}">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-white {% if request.endpoint == 'main.loan' %}active{% endif %}" href="{{ url_for('main.loan') }}">
+          <i class="bi bi-cash-coin"></i> Apply for Loan
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-white {% if request.endpoint == 'main.goals' %}active{% endif %}" href="{{ url_for('main.goals') }}">
+          <i class="bi bi-bullseye"></i> Financial Goals
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-white {% if request.endpoint == 'main.transactions' %}active{% endif %}" href="{{ url_for('main.transactions') }}">
+          <i class="bi bi-clock-history"></i> Transaction History
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-white {% if request.endpoint == 'main.profile' %}active{% endif %}" href="{{ url_for('main.profile') }}">
+          <i class="bi bi-person"></i> Profile
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-white {% if request.endpoint == 'main.my_loans' %}active{% endif %}" href="{{ url_for('main.my_loans') }}">
+          <i class="bi bi-journal-check"></i> Loan Status
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-white {% if request.endpoint == 'customer.emi_calculator' %}active{% endif %}" href="{{ url_for('customer.emi_calculator') }}">
+          <i class="bi bi-calculator"></i> EMI Calculator
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('customer.interest_calculator') }}">
+          Interest Calculator
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-white" href="{{ url_for('main.logout') }}">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}My Loans{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">My Loan Applications</h2>
+{% if loans %}
+<table class="table table-bordered table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>Loan ID</th>
+            <th>Amount (₹)</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Applied On</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for loan in loans %}
+        <tr>
+            <td>{{ loan.id }}</td>
+            <td>{{ loan.amount }}</td>
+            <td>{{ loan.reason }}</td>
+            <td>{{ loan.status or 'Pending' }}</td>
+            <td>{{ loan.created_at.strftime('%Y-%m-%d') if loan.created_at else 'N/A' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+    <p class="text-muted">You have not applied for any loans yet.</p>
+{% endif %}
+{% endblock %}

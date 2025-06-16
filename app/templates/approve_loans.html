@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Approve Loans{% endblock %}
+
+{% block content %}
+<h2>Pending Loan Applications</h2>
+
+{% if loans %}
+<table class="table table-bordered mt-4">
+    <thead>
+        <tr>
+            <th>Customer</th>
+            <th>Amount</th>
+            <th>Reason</th>
+            <th>EMI</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for loan in loans %}
+        <tr>
+            <td>{{ loan.user.name }}</td>
+            <td>₹{{ loan.amount }}</td>
+            <td>{{ loan.reason }}</td>
+            <td>₹{{ loan.emi_due }}</td>
+            <td>{{ loan.status }}</td>
+            <td>
+                <form method="POST" action="{{ url_for('staff.update_loan_status', loan_id=loan.id) }}" class="d-flex gap-2">
+                    <button name="status" value="Approved" class="btn btn-success btn-sm">Approve</button>
+                    <button name="status" value="Rejected" class="btn btn-danger btn-sm">Reject</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No loan applications pending approval.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,11 @@
+<h2>Transactions for {{ user.name }} ({{ user.username }})</h2>
+<table>
+  <tr><th>Type</th><th>Amount</th><th>Date</th></tr>
+  {% for txn in transactions %}
+    <tr>
+      <td>{{ txn.type }}</td>
+      <td>{{ txn.amount }}</td>
+      <td>{{ txn.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+    </tr>
+  {% endfor %}
+</table>

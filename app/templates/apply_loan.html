@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Apply for a Loan{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm p-4">
+      <h3 class="mb-4 text-info">Apply for a Loan</h3>
+      <form method="POST" action="{{ url_for('main.apply_loan') }}">
+        <div class="mb-3">
+          <label for="amount" class="form-label">Loan Amount</label>
+          <input type="number" class="form-control" name="amount" step="0.01" placeholder="Enter loan amount" required>
+        </div>
+        <div class="mb-3">
+          <label for="reason" class="form-label">Reason (optional)</label>
+          <input type="text" class="form-control" name="reason" placeholder="Reason for loan">
+        </div>
+        <button type="submit" class="btn btn-info w-100">Submit Application</button>
+      </form>
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary w-100 mt-3">← Back to Dashboard</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

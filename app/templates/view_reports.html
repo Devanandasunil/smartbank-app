@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Customer Service - SmartBank{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">📢 Reported Issues / Spam</h2>
+
+    {% if reports %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Reported At</th>
+                        <th>Reason</th>
+                        <th>Transaction</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr>
+                        <td>{{ report.user.name or 'No Name' }}</td>
+                        <td>{{ report.user.email }}</td>
+                        <td>{{ report.timestamp.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                        <td>{{ report.reason }}</td>
+                        <td>
+                            {% if report.transaction %}
+                                ₹{{ report.transaction.amount }} - {{ report.transaction.type }} <br>
+                                <small>{{ report.transaction.timestamp.strftime('%Y-%m-%d') }}</small>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">No reports found.</div>
+    {% endif %}
+</div>
+{% endblock %}

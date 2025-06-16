@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>All Registered Customers</h2>
+    <table class="table table-striped mt-4">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Mobile</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.name or 'N/A' }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.mobile_number or 'N/A' }}</td>
+                <td>
+                    <a href="{{ url_for('staff.view_user_transactions', user_id=user.id) }}" class="btn btn-sm btn-primary">Transactions</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
