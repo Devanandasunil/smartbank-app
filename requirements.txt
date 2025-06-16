@@ -58,7 +58,6 @@ protobuf==5.29.0
 psycopg2-binary==2.9.10
 pydantic==2.11.1
 pydantic_core==2.33.0
-pygame==2.5.2
 Pygments==2.18.0
 pymongo==4.11.3
 pyparsing==3.2.0
