@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Transaction Details</h2>
+<p><strong>Transaction ID:</strong> TNX{{ transaction.timestamp.strftime("%Y%m%d") }}{{ transaction.id }}</p>
+<p><strong>User:</strong> {{ user.name }} ({{ user.email }})</p>
+<p><strong>Date:</strong> {{ transaction.timestamp.strftime('%b %d, %Y at %I:%M %p') }}</p>
+<p><strong>Type:</strong> {{ transaction.type }}</p>
+<p><strong>Amount:</strong> ₹{{ "%.2f"|format(transaction.amount) }}</p>
+<p><strong>Status:</strong> {{ transaction.status }}</p>
+<p><strong>Description:</strong> {{ transaction.description or "Bank Transaction" }}</p>
+<a href="{{ url_for('staff.view_user_transactions', user_id=user.id) }}" class="btn btn-primary">Back to Transactions</a>
+{% endblock %}

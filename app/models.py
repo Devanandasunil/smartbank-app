@@ -24,12 +24,12 @@ class User(UserMixin, db.Model):
     __tablename__ = 'user'
 
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    password_hash = db.Column(db.String(200), nullable=False)
+    username = db.Column(db.String(150), unique=True, nullable=True)
+    password_hash = db.Column(db.String(255), nullable=True)
     name = db.Column(db.String(150))
-    place = db.Column(db.String(150), nullable=True)
+    email = db.Column(db.String(100), unique=True, nullable=False)
     mobile_number = db.Column(db.String(20), nullable=True)
-    email = db.Column(db.String(150), unique=True, nullable=False)
+    place = db.Column(db.String(150), nullable=True)
     profile_image = db.Column(db.String(200), nullable=True)
     is_staff = db.Column(db.Boolean, default=False)
     is_admin = db.Column(db.Boolean, default=False)
@@ -39,10 +39,7 @@ class User(UserMixin, db.Model):
     loans = db.relationship('Loan', backref='user', lazy=True)
     transactions = db.relationship('Transaction', backref='user', lazy=True)
     goals = db.relationship('FinancialGoal', backref='user', lazy=True)
-    
-    # Relationships for spam reports
-    spam_reports_sent = db.relationship('SpamReport', foreign_keys='SpamReport.user_id', backref='reporter', lazy=True)
-    spam_reports_received = db.relationship('SpamReport', foreign_keys='SpamReport.reported_user_id', backref='reported_user', lazy=True)
+    contacts = db.relationship('SavedContact', backref='user', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -50,16 +47,15 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    def __repr__(self):
-        return f"<User {self.username}>"
-
     def terminate_account(self, permanent=False):
         if permanent:
             db.session.delete(self)
         else:
-            # Handle soft deletion logic (e.g., flag user as inactive)
             self.is_active = False
         db.session.commit()
+
+    def __repr__(self):
+        return f"<User {self.email}>"
 
 # -- Utility: Generate Unique Account Number --
 def generate_account_number():
@@ -77,6 +73,42 @@ class Account(db.Model):
     account_number = db.Column(db.String(20), unique=True, nullable=False, default=generate_account_number)
     balance = db.Column(db.Float, default=0.0)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+# -- Transaction Model --
+class Transaction(db.Model):
+    __tablename__ = 'transaction'
+
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String(20))
+    amount = db.Column(db.Float)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    recipient_account = db.Column(db.String(20), nullable=True)
+    is_fraud = db.Column(db.Boolean, default=False)
+    reported = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(20), default="Success")
+    beneficiary_name = db.Column(db.String(120))
+    description = db.Column(db.String(255), default="Bank Transaction")
+
+
+    # `spam_reports` relationship handled in SpamReport
+
+    def __repr__(self):
+        return f"<Transaction {self.type} ₹{self.amount}>"
+
+# -- Loan Model --
+class Loan(db.Model):
+    __tablename__ = 'loan'
+
+    id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Float)
+    reason = db.Column(db.String(255))
+    status = db.Column(db.String(20), default='Pending')
+    emi_due = db.Column(db.Float, default=0.0)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    def __repr__(self):
+        return f"<Loan ₹{self.amount} - {self.status}>"
 
 # -- Financial Goal Model --
 class FinancialGoal(db.Model):
@@ -96,49 +128,32 @@ class FinancialGoal(db.Model):
     def __repr__(self):
         return f"<Goal ₹{self.target_amount} by {self.deadline}>"
 
-# -- Transaction Model --
-class Transaction(db.Model):
-    __tablename__ = 'transaction'
-
-    id = db.Column(db.Integer, primary_key=True)
-    type = db.Column(db.String(20))
-    amount = db.Column(db.Float)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    recipient_account = db.Column(db.String(20), nullable=True)
-    is_fraud = db.Column(db.Boolean, default=False)
-    reported = db.Column(db.Boolean, default=False)
-
-    spam_reports = db.relationship('SpamReport', backref='transaction', lazy=True)
-
-    def __repr__(self):
-        return f"<Transaction {self.type} ₹{self.amount}>"
-
-# -- Loan Model --
-class Loan(db.Model):
-    __tablename__ = 'loan'
-
-    id = db.Column(db.Integer, primary_key=True)
-    amount = db.Column(db.Float)
-    reason = db.Column(db.String(255))
-    status = db.Column(db.String(20), default='Pending')
-    emi_due = db.Column(db.Float, default=0.0)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-
-    def __repr__(self):
-        return f"<Loan ₹{self.amount} - {self.status}>"
-
 # -- Spam Report Model --
 class SpamReport(db.Model):
-    __tablename__ = 'spam_report'
-
     id = db.Column(db.Integer, primary_key=True)
-    transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'))
     reported_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     reason = db.Column(db.String(255))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='Pending')  # Pending / Reviewed / Resolved
+
+    reporter = db.relationship('User', foreign_keys=[user_id])
+    reported_user = db.relationship('User', foreign_keys=[reported_user_id])
+    transaction = db.relationship('Transaction')
 
     def __repr__(self):
         return f"<SpamReport Transaction {self.transaction_id}>"
 
+# -- Saved Contact Model --
+class SavedContact(db.Model):
+    __tablename__ = "saved_contact"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100))
+    account_number = db.Column(db.String(20))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Contact {self.name} - {self.account_number}>"

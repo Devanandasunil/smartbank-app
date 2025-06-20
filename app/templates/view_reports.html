@@ -5,32 +5,85 @@
 <div class="container mt-5">
     <h2 class="mb-4">📢 Reported Issues / Spam</h2>
 
+    <!-- 🔍 Filter/Search Form -->
+    <form class="row mb-4" method="GET">
+        <div class="col-md-3">
+            <input type="text" name="search" placeholder="Search user, email or reason" class="form-control" value="{{ request.args.get('search', '') }}">
+        </div>
+        <div class="col-md-2">
+            <input type="date" name="start_date" class="form-control" value="{{ request.args.get('start_date', '') }}">
+        </div>
+        <div class="col-md-2">
+            <input type="date" name="end_date" class="form-control" value="{{ request.args.get('end_date', '') }}">
+        </div>
+        <div class="col-md-2">
+            <select name="status" class="form-control">
+                <option value="">All Status</option>
+                <option value="Pending" {% if request.args.get('status') == 'Pending' %}selected{% endif %}>Pending</option>
+                <option value="Reviewed" {% if request.args.get('status') == 'Reviewed' %}selected{% endif %}>Reviewed</option>
+                <option value="Resolved" {% if request.args.get('status') == 'Resolved' %}selected{% endif %}>Resolved</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{{ url_for('staff.view_reports') }}" class="btn btn-secondary">Reset</a>
+        </div>
+    </form>
+
     {% if reports %}
         <div class="table-responsive">
             <table class="table table-bordered table-hover align-middle">
-                <thead class="table-dark">
+                <thead class="table-dark text-center">
                     <tr>
-                        <th>User</th>
+                        <th>Reporter</th>
                         <th>Email</th>
                         <th>Reported At</th>
                         <th>Reason</th>
                         <th>Transaction</th>
+                        <th>Reported Against</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for report in reports %}
                     <tr>
-                        <td>{{ report.user.name or 'No Name' }}</td>
-                        <td>{{ report.user.email }}</td>
+                        <td>{{ report.reporter.name or 'No Name' }}</td>
+                        <td>{{ report.reporter.email or 'N/A' }}</td>
                         <td>{{ report.timestamp.strftime('%Y-%m-%d %I:%M %p') }}</td>
-                        <td>{{ report.reason }}</td>
+                        <td>{{ report.reason or 'No reason provided' }}</td>
                         <td>
                             {% if report.transaction %}
-                                ₹{{ report.transaction.amount }} - {{ report.transaction.type }} <br>
+                                ₹{{ report.transaction.amount }} - {{ report.transaction.type }}<br>
                                 <small>{{ report.transaction.timestamp.strftime('%Y-%m-%d') }}</small>
                             {% else %}
-                                N/A
+                                <span class="text-muted">No transaction info</span>
                             {% endif %}
+                        </td>
+                        <td>
+                            {% if report.reported_user %}
+                                {{ report.reported_user.name or 'Unknown' }}<br>
+                                <small>{{ report.reported_user.email or 'N/A' }}</small>
+                            {% else %}
+                                <span class="text-muted">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-{{ 
+                                'warning' if report.status == 'Pending' else 
+                                'info' if report.status == 'Reviewed' else 
+                                'success' 
+                            }}">{{ report.status }}</span>
+                        </td>
+                        <td class="text-center">
+                            {% if report.status != 'Resolved' %}
+                                <form method="POST" action="{{ url_for('staff.resolve_report', report_id=report.id) }}" style="display:inline;">
+                                    <button class="btn btn-sm btn-outline-success">✔ Resolve</button>
+                                </form>
+                            {% endif %}
+                            <form method="POST" action="{{ url_for('staff.delete_report', report_id=report.id) }}" style="display:inline;" onsubmit="return confirm('Delete this report?');">
+                                <button class="btn btn-sm btn-outline-danger">🗑 Delete</button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
@@ -38,7 +91,7 @@
             </table>
         </div>
     {% else %}
-        <div class="alert alert-info">No reports found.</div>
+        <div class="alert alert-info text-center">No reports found.</div>
     {% endif %}
 </div>
 {% endblock %}

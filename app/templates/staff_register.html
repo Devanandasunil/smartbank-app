@@ -4,8 +4,6 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h2>Staff Registration</h2>
-
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
@@ -17,73 +15,128 @@
         {% endif %}
     {% endwith %}
 
-    <form method="POST">
-        {{ form.hidden_tag() }}
+    <div class="card shadow-sm p-4 mx-auto" style="max-width: 650px;">
+        <h2 class="mb-4 text-center">Staff Registration</h2>
+        <form method="POST" action="{{ url_for('staff.staff_register') }}" onsubmit="return validateBeforeSubmit();">
+            {{ form.hidden_tag() }}
 
-        <div class="mb-3">
-            {{ form.name.label(class="form-label") }}
-            {{ form.name(class="form-control") }}
-            {% for error in form.name.errors %}
-                <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-        </div>
+            <div class="mb-3">{{ form.name.label(class="form-label") }}{{ form.name(class="form-control", placeholder="Enter full name") }}{% if form.name.errors %}<div class="text-danger">{{ form.name.errors[0] }}</div>{% endif %}</div>
+            <div class="mb-3">{{ form.email.label(class="form-label") }}{{ form.email(class="form-control", placeholder="Enter email address") }}{% if form.email.errors %}<div class="text-danger">{{ form.email.errors[0] }}</div>{% endif %}</div>
+            <div class="mb-3">{{ form.mobile.label(class="form-label") }}{{ form.mobile(class="form-control", placeholder="Enter mobile number") }}{% if form.mobile.errors %}<div class="text-danger">{{ form.mobile.errors[0] }}</div>{% endif %}</div>
+            <div class="mb-3">{{ form.staff_key.label(class="form-label") }}{{ form.staff_key(class="form-control", placeholder="Enter registration key") }}{% if form.staff_key.errors %}<div class="text-danger">{{ form.staff_key.errors[0] }}</div>{% endif %}</div>
+            <div class="mb-3">{{ form.password.label(class="form-label") }}{{ form.password(class="form-control", placeholder="Enter password") }}{% if form.password.errors %}<div class="text-danger">{{ form.password.errors[0] }}</div>{% endif %}</div>
+            <div class="mb-3">{{ form.confirm_password.label(class="form-label") }}{{ form.confirm_password(class="form-control", placeholder="Confirm password") }}{% if form.confirm_password.errors %}<div class="text-danger">{{ form.confirm_password.errors[0] }}</div>{% endif %}</div>
 
-        <div class="mb-3">
-            {{ form.email.label(class="form-label") }}
-            {{ form.email(class="form-control") }}
-            {% for error in form.email.errors %}
-                <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-        </div>
+            <div class="mb-3">
+                <label class="form-label">Face Capture</label>
+                <div class="d-flex gap-2 mb-2">
+                    <button type="button" onclick="startCamera()" class="btn btn-outline-info">Open Camera</button>
+                    <button type="button" onclick="captureFace()" class="btn btn-outline-success">Capture Face</button>
+                </div>
+                <input type="hidden" name="face_image" id="face_image">
+                <div id="video-container" style="position: relative; width: 100%; max-height: 300px;">
+    <video id="camera" autoplay muted playsinline style="display: none; width: 100%; border-radius: 10px;"></video>
+    <canvas id="overlay" style="position: absolute; top: 0; left: 0;"></canvas>
+</div>
+<img id="preview" alt="Captured Face Preview" style="display: none; width: 100%; border-radius: 8px;" />
 
-        <div class="mb-3">
-            {{ form.mobile_number.label(class="form-label") }}
-            {{ form.mobile_number(class="form-control") }}
-            {% for error in form.mobile_number.errors %}
-                <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-        </div>
+            </div>
 
-        <div class="mb-3">
-            {{ form.staff_key.label(class="form-label") }}
-            {{ form.staff_key(class="form-control") }}
-            {% for error in form.staff_key.errors %}
-                <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-        </div>
+            <div class="d-grid">
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
 
-        <div class="mb-3">
-            {{ form.password.label(class="form-label") }}
-            {{ form.password(class="form-control") }}
-            {% for error in form.password.errors %}
-                <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-        </div>
-
-        <div class="mb-3">
-            {{ form.confirm_password.label(class="form-label") }}
-            {{ form.confirm_password(class="form-control") }}
-            {% for error in form.confirm_password.errors %}
-                <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-        </div>
-
-        <div class="mb-3">
-            {{ form.submit(class="btn btn-success") }}
-        </div>
-
-        <p class="mt-3">
-            Already have an account? <a href="{{ url_for('staff.login') }}">Login here</a>
-        </p>
-    </form>
+            <div class="text-center mt-3">
+                <p>Already have an account? <a href="{{ url_for('staff.login') }}">Login here</a></p>
+            </div>
+        </form>
+    </div>
 </div>
 
-{% if current_user.is_authenticated %}
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mt-4">
-  <div class="container-fluid">
-    <button type="button" id="sidebarCollapse" class="me-3">&#9776;</button>
-    <a class="navbar-brand" href="#">SmartBank</a>
-  </div>
-</nav>
-{% endif %}
+<!-- ✅ Load browser-compatible face-api.js -->
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+<script>
+let stream = null;
+let faceDetected = false;
+let video = null;
+let detectionInterval = null;
+let faceCanvas = null;
+
+async function startCamera() {
+    video = document.getElementById("camera");
+    document.getElementById("preview").style.display = "none";
+
+    // Load model
+    await faceapi.nets.tinyFaceDetector.loadFromUri('/static/models');
+
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        video.style.display = "block";
+
+        video.addEventListener("play", () => {
+            if (faceCanvas) faceCanvas.remove();
+            faceCanvas = faceapi.createCanvasFromMedia(video);
+            document.getElementById("video-container").appendChild(faceCanvas);
+
+            faceCanvas.style.position = "absolute";
+            faceCanvas.style.top = video.offsetTop + "px";
+            faceCanvas.style.left = video.offsetLeft + "px";
+
+            const displaySize = { width: video.videoWidth, height: video.videoHeight };
+            faceapi.matchDimensions(faceCanvas, displaySize);
+
+            detectionInterval = setInterval(async () => {
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
+                faceDetected = detections.length > 0;
+                const resized = faceapi.resizeResults(detections, displaySize);
+                const ctx = faceCanvas.getContext("2d");
+                ctx.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
+                faceapi.draw.drawDetections(faceCanvas, resized);
+            }, 500);
+        });
+    } catch (err) {
+        alert("Camera access denied or error: " + err);
+    }
+}
+
+function captureFace() {
+    if (!video || video.style.display === "none") {
+        alert("Start the camera first!");
+        return;
+    }
+
+    if (!faceDetected) {
+        alert("No face detected! Please look at the camera.");
+        return;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0);
+
+    if (stream) stream.getTracks().forEach(track => track.stop());
+    stream = null;
+    if (detectionInterval) clearInterval(detectionInterval);
+    if (faceCanvas) faceCanvas.remove();
+
+    const dataURL = canvas.toDataURL("image/jpeg");
+    document.getElementById("face_image").value = dataURL;
+    document.getElementById("preview").src = dataURL;
+    document.getElementById("preview").style.display = "block";
+    video.style.display = "none";
+}
+
+function validateBeforeSubmit() {
+    const faceData = document.getElementById("face_image").value;
+    if (!faceData || !faceDetected) {
+        alert("Please capture a valid face image before submitting.");
+        return false;
+    }
+    return true;
+}
+</script>
 {% endblock %}

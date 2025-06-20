@@ -19,6 +19,14 @@ from io import BytesIO
 from PIL import Image
 import numpy as np
 import face_recognition
+from app.models import Transaction, SavedContact
+# ✅ Required imports at top of file
+from datetime import datetime, timedelta
+from flask import render_template, request, flash
+from flask_login import login_required, current_user
+from app.models import Transaction, SavedContact
+
+
 
 main = Blueprint("main", __name__)
 
@@ -49,7 +57,7 @@ def home():
         if hasattr(current_user, 'is_staff') and current_user.is_staff:
             return redirect(url_for('staff.dashboard'))
         else:
-            return redirect(url_for('customer.dashboard'))
+            return redirect(url_for('main.dashboard'))
     return render_template('home.html')
 
 @main.route('/landing')
@@ -176,129 +184,94 @@ def delete_goal(goal_id):
     flash("Goal deleted successfully.", "info")
     return redirect(url_for("main.goals"))
 
-# Route: Deposit Money
-@main.route("/deposit", methods=["GET", "POST"])
+# Deposit Route
+@main.route('/deposit', methods=['GET', 'POST'])
 @login_required
-@nocache
 def deposit():
     form = DepositForm()
     if form.validate_on_submit():
-        account = get_or_create_account(current_user)
-        account.balance += form.amount.data
-        transaction = Transaction(
-            type="Deposit", amount=form.amount.data, user_id=current_user.id
-        )
-        db.session.add(transaction)
-        db.session.commit()
-        flash("Amount deposited.", "success")
-        return redirect(url_for("main.dashboard"))
-    return render_template("deposit.html", form=form)
+        amount = float(form.amount.data)
+        if amount <= 0:
+            flash("Enter a valid amount", "danger")
+        else:
+            account = current_user.account
+            account.balance += amount
 
-# Route: Withdraw Money
-@main.route("/withdraw", methods=["GET", "POST"])
+            txn = Transaction(
+                user_id=current_user.id,
+                type='Deposit',
+                amount=amount,
+                recipient_account=None
+            )
+            db.session.add(txn)
+            db.session.commit()
+
+            flash("Deposit successful!", "success")
+            return redirect(url_for('main.dashboard'))
+
+    return render_template('deposit.html', form=form)
+
+# Withdraw Route
+@main.route('/withdraw', methods=['GET', 'POST'])
 @login_required
-@nocache
 def withdraw():
     form = WithdrawForm()
     if form.validate_on_submit():
-        account = get_or_create_account(current_user)
-        amount = form.amount.data
+        amount = float(form.amount.data)
+        account = current_user.account
+        if amount <= 0 or amount > account.balance:
+            flash("Invalid withdrawal amount", "danger")
+        else:
+            account.balance -= amount
 
-        # 1. Fetch the User's Active Goal
-        goal = (
-            FinancialGoal.query.filter_by(user_id=current_user.id)
-            .filter(FinancialGoal.saving_mode != SavingMode.NONE)
-            .order_by(FinancialGoal.created_at.desc())
-            .first()
-        )
+            txn = Transaction(
+                user_id=current_user.id,
+                type='Withdraw',
+                amount=amount,
+                recipient_account=None
+            )
+            db.session.add(txn)
+            db.session.commit()
 
-        if goal:
-            # 2. Calculate Savings Progress
-            # 2. Calculate Savings Progress
-            today = datetime.now(timezone.utc).date()
+            flash("Withdrawal successful!", "success")
+            return redirect(url_for('main.dashboard'))
 
-            if goal.saving_mode == SavingMode.DAILY:
-                days_since_creation = (today - goal.created_at.date()).days
-                expected_savings = goal.daily_amount * days_since_creation
-                weeks_since_creation = (today - goal.created_at.date()).days // 7
-                expected_savings = goal.weekly_amount * weeks_since_creation
-            elif goal.saving_mode == SavingMode.MONTHLY:
-                months_since_creation = (today.year - goal.created_at.year) * 12 + (
-                    today.month - goal.created_at.month
-                )
-                expected_savings = goal.monthly_amount * months_since_creation
-            elif goal.saving_mode == SavingMode.YEARLY:
-                years_since_creation = today.year - goal.created_at.year
-                expected_savings = goal.yearly_amount * years_since_creation
-            else:
-                expected_savings = 0.0
+    return render_template('withdraw.html', form=form)
 
-            # 3. Check Savings Target
-            if account.balance < amount:
-                flash("Insufficient balance.", "danger")
-                return redirect(url_for("main.withdraw"))
-
-            if account.balance - amount < expected_savings:
-                flash(
-                    "Withdrawal not allowed. You have not met your savings goal.",
-                    "danger",
-                )
-                return redirect(url_for("main.withdraw"))
-
-        # 4. Prevent Withdrawal (If Necessary)
-        if amount > account.balance:
-            flash("Insufficient balance.", "danger")
-            return redirect(url_for("main.withdraw"))
-
-        # 5. Update Savings Progress (If Withdrawal Allowed)
-        account.balance -= amount
-        transaction = Transaction(
-            type="Withdraw", amount=amount, user_id=current_user.id
-        )
-        db.session.add(transaction)
-        db.session.commit()
-        flash("Amount withdrawn.", "success")
-        return redirect(url_for("main.dashboard"))
-    return render_template("withdraw.html", form=form)
-
-# Route: Transfer Money
-@main.route("/transfer", methods=["GET", "POST"])
+# Transfer Route
+@main.route('/transfer', methods=['GET', 'POST'])
 @login_required
-@nocache
 def transfer():
     form = TransferForm()
     if form.validate_on_submit():
-        sender_account = get_or_create_account(current_user)
-        recipient_account = Account.query.filter_by(
-            account_number=form.recipient_account.data
-        ).first()
-        if not recipient_account:
-            flash("Invalid recipient.", "danger")
-            return redirect(url_for("main.transfer"))
-        if form.amount.data > sender_account.balance:
-            flash("Insufficient balance.", "danger")
-            return redirect(url_for("main.transfer"))
-        sender_account.balance -= form.amount.data
-        recipient_account.balance += form.amount.data
+        amount = float(form.amount.data)
+        recipient_acc = form.recipient_account.data
+        sender = current_user.account
+        recipient = Account.query.filter_by(account_number=recipient_acc).first()
 
-        sender_tx = Transaction(
-            type="Transfer Sent",
-            amount=form.amount.data,
-            user_id=current_user.id,
-            recipient_account=recipient_account.account_number,
-        )
-        recipient_tx = Transaction(
-            type="Transfer Received",
-            amount=form.amount.data,
-            user_id=recipient_account.user_id,
-            recipient_account=sender_account.account_number,
-        )
-        db.session.add(sender_tx)
-        db.session.add(recipient_tx)
-        db.session.commit()
-        flash("Transfer completed.", "success")
-        return redirect(url_for("main.dashboard"))
-    return render_template("transfer.html", form=form)
+        if not recipient:
+            flash("Recipient not found", "danger")
+        elif recipient.id == sender.id:
+            flash("Cannot transfer to yourself", "warning")
+        elif amount <= 0 or amount > sender.balance:
+            flash("Invalid transfer amount", "danger")
+        else:
+            sender.balance -= amount
+            recipient.balance += amount
+
+            txn = Transaction(
+                user_id=current_user.id,
+                type='Transfer',
+                amount=amount,
+                recipient_account=recipient_acc
+            )
+            db.session.add(txn)
+            db.session.commit()
+
+            flash("Transfer successful!", "success")
+            return redirect(url_for('main.dashboard'))
+
+    return render_template('transfer.html', form=form)
 
 # Route: Loan Application
 @main.route("/loan", methods=["GET", "POST"])
@@ -331,50 +304,46 @@ def loan():
 
     return render_template("loan.html")
 
-# Route: Profile Management
 @main.route("/profile", methods=["GET", "POST"])
 @login_required
 @nocache
 def profile():
-    form = ProfileForm(obj=current_user)
+    form = ProfileForm()
+
     if form.validate_on_submit():
-        current_user.name = form.name.data
-        current_user.place = form.place.data
-        current_user.mobile_number = form.mobile_number.data
+        # Check if email is changing and is unique
         if form.email.data != current_user.email:
             if User.query.filter_by(email=form.email.data).first():
                 flash("Email already exists.", "danger")
                 return redirect(url_for("main.profile"))
             current_user.email = form.email.data
-        if form.photo.data:
-            filename = secure_filename(form.photo.data.filename)
-            upload_path = os.path.join(
-                current_app.root_path, "static/uploads", filename
-            )
-            form.photo.data.save(upload_path)
+
+        # Update other fields
+        current_user.name = form.name.data
+        current_user.place = form.place.data
+        current_user.mobile_number = form.mobile_number.data
+
+        # Handle image upload
+        if form.profile_image.data:
+            filename = secure_filename(form.profile_image.data.filename)
+            upload_path = os.path.join(current_app.root_path, "static/uploads", filename)
+            form.profile_image.data.save(upload_path)
             current_user.profile_image = filename
+
+        
         db.session.commit()
-        flash("Profile updated.", "success")
+        flash("Profile updated successfully!", "success")
         return redirect(url_for("main.profile"))
+
+    elif request.method == "GET":
+        # Pre-fill form with user data
+        form.name.data = current_user.name
+        form.place.data = current_user.place
+        form.mobile_number.data = current_user.mobile_number
+        form.email.data = current_user.email
+
     return render_template("profile.html", form=form, user=current_user)
 
-# New route: Delete user account
-@main.route("/profile/delete", methods=["POST"])
-@login_required
-def delete_profile():
-    user = current_user
-    logout_user()
-    # Delete related data first to avoid foreign key constraints if any
-    Loan.query.filter_by(user_id=user.id).delete()
-    FinancialGoal.query.filter_by(user_id=user.id).delete()
-    Transaction.query.filter_by(user_id=user.id).delete()
-    Account.query.filter_by(user_id=user.id).delete()
-    SpamReport.query.filter_by(user_id=user.id).delete()
-    SpamReport.query.filter_by(reported_user_id=user.id).delete()
-    db.session.delete(user)
-    db.session.commit()
-    flash("Your account has been deleted successfully.", "success")
-    return redirect(url_for("main.landing"))
 
 # Route: List My Loans
 @main.route("/my_loans")
@@ -385,63 +354,54 @@ def my_loans():
     return render_template("my_loans.html", loans=loans)
 
 # Route: Transaction History
-@main.route("/transactions")
+@main.route("/transactions", methods=['GET', 'POST'])
 @login_required
 @nocache
 def transactions():
-    transactions = (
-        Transaction.query.filter_by(user_id=current_user.id)
-        .order_by(Transaction.id.desc())
-        .all()
+    name_filter = request.args.get('name', '').strip()
+    start_date_str = request.args.get('start_date', '').strip()
+    end_date_str = request.args.get('end_date', '').strip()
+
+    # Start base query
+    query = Transaction.query.filter_by(user_id=current_user.id)
+
+    # Filter by beneficiary name
+    if name_filter:
+        query = query.filter(Transaction.beneficiary_name.ilike(f"%{name_filter}%"))
+
+    # Filter by start date
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            query = query.filter(Transaction.timestamp >= start_date)
+        except ValueError:
+            flash("Invalid start date format. Use DD-MM-YYYY.", "danger")
+
+    # Filter by end date
+    if end_date_str:
+        try:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Transaction.timestamp < end_date)
+        except ValueError:
+            flash("Invalid end date format. Use DD-MM-YYYY.", "danger")
+
+    transactions = query.order_by(Transaction.id.desc()).all()
+
+    # For "recent recipients"
+    saved_contacts = SavedContact.query.filter_by(user_id=current_user.id).all()
+
+    # 🔥 This is the missing piece!
+    reported_ids = [r.transaction_id for r in current_user.spam_reports_sent]
+
+
+    return render_template(
+        "transactions.html",
+        transactions=transactions,
+        saved_contacts=saved_contacts,
+        reported_ids=reported_ids
     )
-    return render_template("transactions.html", transactions=transactions)
 
-# Route: Report Suspicious Transaction
-@main.route("/report_spam/<int:transaction_id>", methods=["POST"])
-@login_required
-def report_spam(transaction_id):
-    reason = request.form.get("reason", "")
-    transaction = Transaction.query.get_or_404(transaction_id)
-    report = SpamReport(
-        transaction_id=transaction.id, user_id=current_user.id, reason=reason
-    )
-    transaction.is_fraud = True
-    db.session.add(report)
-    db.session.commit()
-    flash("Transaction reported as suspicious.", "info")
-    return redirect(url_for("main.transactions"))
 
-# Route: Report Transaction
-@main.route("/report_transaction/<int:transaction_id>", methods=["POST"])
-@login_required
-def report_transaction(transaction_id):
-    tx = Transaction.query.filter_by(id=transaction_id, user_id=current_user.id).first()
-    if not tx:
-        flash("Transaction not found.", "danger")
-        return redirect(url_for("main.transactions"))
-    if tx.reported:
-        flash("Transaction already reported.", "info")
-    else:
-        tx.reported = True
-        db.session.commit()
-        flash("Transaction reported successfully.", "success")
-    return redirect(url_for("main.transactions"))
-
-# Route: Undo Report Transaction
-@main.route("/undo_report_transaction/<int:transaction_id>", methods=["POST"])
-@login_required
-def undo_report_transaction(transaction_id):
-    tx = Transaction.query.filter_by(id=transaction_id, user_id=current_user.id).first()
-    if not tx:
-        flash("Transaction not found.", "danger")
-        return redirect(url_for("main.transactions"))
-    if not tx.reported:
-        flash("Transaction is not reported.", "info")
-    else:
-        tx.reported = False
-        db.session.commit()
-        flash("Report undone successfully.", "success")
-    return redirect(url_for("main.transactions"))
 
 # Route: Face Login
 @main.route('/face_login', methods=['POST'])
@@ -486,4 +446,11 @@ def face_login():
 # Register the blueprint in your main application file (e.g., app.py) where 'app' is defined:
 # from .routes import main
 # app.register_blueprint(main)
+
+@main.route('/test')
+def test_error():
+    print("Home route triggered")
+    return 1 / 0  # deliberate ZeroDivisionError
+   
+
 

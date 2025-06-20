@@ -2,50 +2,52 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Bank Account Profile</title>
-
-    <!-- Correct link to the CSS file in static folder -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}" />
-    
-    <!-- Optional: Google Material Icons for icons usage -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <title>Profile - SmartBank</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
     <div class="container">
         <h2 class="page-title">Your Account Profile</h2>
+
         <div class="profile-section">
             <div class="profile-pic">
-              <img src="{{ url_for('static', filename='uploads/default.png') }}" alt="Default Profile Picture" class="profile-image" />
+                {% if user.profile_image %}
+                    <img src="{{ url_for('static', filename='uploads/' ~ user.profile_image) }}" alt="Profile Image" class="profile-image" />
+                {% else %}
+                    <img src="{{ url_for('static', filename='uploads/default.png') }}" alt="Default Image" class="profile-image" />
+                {% endif %}
             </div>
 
-            <form id="profile-form" class="profile-form">
+            <form method="POST" enctype="multipart/form-data" class="profile-form">
+                {{ form.hidden_tag() }}
+
                 <div class="form-group">
-                    <label for="profile-pic">Profile Picture</label>
-                    <input type="file" id="profile-pic" name="profile-pic" accept="image/*" />
-                </div>
-                
-                <div class="form-group">
-                    <label for="name">Name</label>
-                    <input type="text" id="name" name="name" required />
+                    {{ form.profile_image.label }}
+                    {{ form.profile_image(class="form-control") }}
                 </div>
 
                 <div class="form-group">
-                    <label for="place">Place</label>
-                    <input type="text" id="place" name="place" required />
+                    {{ form.name.label }}
+                    {{ form.name(class="form-control") }}
                 </div>
 
                 <div class="form-group">
-                    <label for="mobile">Mobile Number</label>
-                    <input type="tel" id="mobile" name="mobile" required />
+                    {{ form.place.label }}
+                    {{ form.place(class="form-control") }}
                 </div>
 
                 <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required />
+                    {{ form.mobile_number.label }}
+                    {{ form.mobile_number(class="form-control") }}
                 </div>
 
-                <button type="submit" class="btn btn-primary">Update Profile</button>
+                <div class="form-group">
+                    {{ form.email.label }}
+                    {{ form.email(class="form-control") }}
+                </div>
+
+                {{ form.submit(class="btn btn-primary") }}
             </form>
         </div>
 
@@ -56,19 +58,19 @@
         <div class="delete-account">
             <form method="POST" action="{{ url_for('customer.delete_account') }}">
                 <button type="submit" class="btn btn-danger"
-                    onclick="return confirm('Are you sure you want to delete your account? This cannot be undone!')">
+                        onclick="return confirm('Are you sure you want to delete your account? This cannot be undone!')">
                     <span class="material-icons">delete</span> Delete My Account
                 </button>
             </form>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
-          ...
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
         {% endwith %}
-
-        <p class="success-message" id="success-message" style="display:none;">Profile updated successfully!</p>
     </div>
-
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

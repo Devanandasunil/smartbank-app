@@ -1,22 +1,23 @@
-from flask import Flask
+from flask import Flask, session, redirect, request, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
 import os
+import json
 
-# Initialize the extensions
+# Initialize extensions (do this once at module level)
 db = SQLAlchemy()
 login_manager = LoginManager()
 
 def create_app():
     app = Flask(__name__)
 
-    # Configuration
-    app.config['SECRET_KEY'] = 'supersecret'
-   app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///smartbank.db'
+    # Config
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///smartbank.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.secret_key = 'your-very-secret-key'  # Replace with env var in production!
 
-    # Initialize extensions
+    # Initialize extensions with app
     db.init_app(app)
     login_manager.init_app(app)
     migrate = Migrate(app, db)
@@ -25,7 +26,7 @@ def create_app():
     login_manager.login_view = 'customer.login'
     login_manager.login_message_category = 'info'
 
-    # 👇👇👇 THIS is the critical line
+    # Import models so SQLAlchemy registers them
     from . import models
 
     # Register blueprints
@@ -36,5 +37,9 @@ def create_app():
     app.register_blueprint(main_blueprint)
     app.register_blueprint(customer_bp)
     app.register_blueprint(staff_bp)
-
+    
+    
     return app
+
+
+    

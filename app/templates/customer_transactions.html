@@ -16,7 +16,7 @@
             <tbody>
             {% for tx in transactions %}
                 <tr>
-                    <td>{{ tx.date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ "TNX" + tx.timestamp.strftime('%Y%m%d') + str(tx.id).zfill(4) }}</td>
                     <td>{{ 'Credit' if tx.amount > 0 else 'Debit' }}</td>
                     <td>₹{{ tx.amount }}</td>
                     <td>{{ tx.status }}</td>
@@ -29,3 +29,29 @@
     {% endif %}
 </div>
 {% endblock %}
+
+<h3>Recent Recipients</h3>
+<ul>
+  {% for contact in saved_contacts %}
+    <li>
+      <button type="button" onclick="prefillTransfer('{{ contact.name }}', '{{ contact.account_number }}')">
+        <img src="{{ url_for('static', filename='img/user-icon.png') }}" width="30"> 
+        {{ contact.name }} ({{ contact.account_number }})
+      </button>
+    </li>
+  {% endfor %}
+</ul>
+
+<script>
+  function prefillTransfer(name, accNo) {
+    document.getElementById('beneficiary_name').value = name;
+    document.getElementById('account_number').value = accNo;
+  }
+</script>
+
+<!-- Save Contact Checkbox -->
+<div>
+  <input type="checkbox" name="save_contact" id="save_contact">
+  <label for="save_contact">Save this contact</label>
+</div>
+

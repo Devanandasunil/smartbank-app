@@ -1,0 +1,15 @@
+<h2>My Contacts</h2>
+<form method="GET">
+  <input type="text" name="search" placeholder="Search..." value="{{ search }}">
+  <button type="submit">Search</button>
+</form>
+
+<ul>
+  {% for contact in contacts %}
+    <li>
+      <img src="{{ url_for('static', filename='img/user-icon.png') }}" width="30">
+      {{ contact.name }} ({{ contact.account_number }})
+      <a href="{{ url_for('customer.edit_contact', id=contact.id) }}">Edit</a>
+      <a href="{{ url_for('customer.delete_contact', id=contact.id) }}" onclick="return confirm('Delete?')">Delete</a>
+    </li>
+  {% endfor %}

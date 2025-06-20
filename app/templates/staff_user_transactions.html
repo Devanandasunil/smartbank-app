@@ -1,11 +1,145 @@
-<h2>Transactions for {{ user.name }} ({{ user.username }})</h2>
-<table>
-  <tr><th>Type</th><th>Amount</th><th>Date</th></tr>
-  {% for txn in transactions %}
-    <tr>
-      <td>{{ txn.type }}</td>
-      <td>{{ txn.amount }}</td>
-      <td>{{ txn.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
-    </tr>
-  {% endfor %}
-</table>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction History - SmartBank</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="max-w-6xl mx-auto mt-10">
+        <!-- Card -->
+        <div class="bg-white shadow-xl rounded-lg overflow-hidden">
+            <!-- Header -->
+            <div class="bg-blue-700 px-6 py-5 text-white flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-semibold">Transaction History</h2>
+                    <p class="text-sm">Account: {{ user.username }}</p>
+                </div>
+                <div class="bg-white text-black px-4 py-2 rounded-md">
+                    <p class="text-xs font-semibold">Balance</p>
+                    <p class="text-lg font-bold">₹{{ "%.2f"|format(user.account.balance) }}</p>
+                </div>
+            </div>
+
+           <!-- Filters -->
+<form method="get" action="{{ url_for('staff.view_user_transactions', user_id=user.id) }}">
+  <div class="px-6 py-4 bg-gray-50 flex flex-wrap gap-4 justify-between items-center">
+    <div class="flex gap-2">
+      <select name="type" class="border rounded-md px-3 py-2 text-sm">
+        <option value="" {% if current_type == '' %}selected{% endif %}>All</option>
+        <option value="credit" {% if current_type == 'credit' %}selected{% endif %}>Credits</option>
+        <option value="debit" {% if current_type == 'debit' %}selected{% endif %}>Debits</option>
+      </select>
+      <select name="date_range" class="border rounded-md px-3 py-2 text-sm">
+        <option value="" {% if current_range == '' %}selected{% endif %}>All Time</option>
+        <option value="3days" {% if current_range == '3days' %}selected{% endif %}>3 Days</option>
+        <option value="7days" {% if current_range == '7days' %}selected{% endif %}>7 Days</option>
+        <option value="30days" {% if current_range == '30days' %}selected{% endif %}>Last 30 Days</option>
+        <option value="3months" {% if current_range == '3months' %}selected{% endif %}>3 Months</option>
+        <option value="thisyear" {% if current_range == 'thisyear' %}selected{% endif %}>This Year</option>
+      </select>
+      <input type="text" name="search" value="{{ search_query }}" placeholder="Search..." class="border rounded-md px-3 py-2 text-sm" />
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700">Apply</button>
+      <a href="{{ url_for('staff.export_customer_transactions', user_id=user.id, type=current_type, date_range=current_range, search=search_query) }}" class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-700">
+        Export
+      </a>
+    </div>
+  </div>
+</form>
+
+
+            <!-- Transactions -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="text-left px-6 py-3">Type</th>
+                            <th class="text-left px-6 py-3">Details</th>
+                            <th class="text-left px-6 py-3">Amount</th>
+                            <th class="text-left px-6 py-3">Status</th>
+                            <th class="text-right px-6 py-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                        {% for tx in transactions %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                <span class="font-semibold {% if tx.amount > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                                    {% if tx.amount > 0 %}Credit{% else %}Debit{% endif %}
+                                </span>
+                                <p class="text-xs text-gray-500">TNX{{ tx.timestamp.strftime('%Y%m%d') }}{{ '%04d' % tx.id }}</p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <p class="font-medium">{{ tx.description or 'Bank Transaction' }}</p>
+                                <p class="text-xs text-gray-500">{{ tx.timestamp.strftime('%b %d, %Y at %I:%M %p') }}</p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="font-semibold {% if tx.amount > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                                    {% if tx.amount > 0 %}+{% endif %}₹{{ "%.2f"|format(tx.amount) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-block px-2 py-1 text-xs rounded-full {% if tx.status == 'Success' %}bg-green-100 text-green-800{% elif tx.status == 'Completed' %}bg-blue-100 text-blue-800{% elif tx.status == 'Pending' %}bg-yellow-100 text-yellow-800{% elif tx.status == 'Failed' %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ tx.status or 'Success' }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                              <a href="{{ url_for('staff.view_transaction_detail', transaction_id=tx.id) }}" 
+                                class="text-blue-600 hover:underline text-sm">View</a>
+
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center px-6 py-8 text-gray-500">
+                                <p>No transactions found.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer -->
+{% if transactions %}
+<div class="px-6 py-4 bg-gray-50 flex justify-between items-center border-t">
+    <span class="text-sm text-gray-600">Showing {{ transactions|length }} of {{ total_transactions }} transactions</span>
+</div>
+
+<div class="pagination">
+  {% if page > 1 %}
+  <a href="{{ url_for('staff.view_user_transactions', user_id=user.id, page=page - 1, type=current_type, date_range=current_range, search=search_query) }}">← Prev</a>
+  {% endif %}
+  Page {{ page }} of {{ pages }}
+  {% if page < pages %}
+  <a href="{{ url_for('staff.view_user_transactions', user_id=user.id, page=page + 1, type=current_type, date_range=current_range, search=search_query) }}">Next →</a>
+  {% endif %}
+</div>
+
+<!-- Back Button -->
+<div class="px-6 py-4">
+  <a href="{{ url_for('staff.dashboard') }}" class="inline-block bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 text-sm">
+    ← Back to Dashboard
+  </a>
+</div>
+
+
+<style>
+.pagination {
+    text-align: center;
+    margin-top: 20px;
+}
+.pagination a {
+    margin: 0 10px;
+    padding: 6px 12px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+}
+.pagination a:hover {
+    background-color: #0056b3;
+}
+</style>
+{% endif %}

@@ -12,7 +12,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-{{ category }} alert-dismissible fade show" role="alert">
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
@@ -20,42 +20,98 @@
         {% endif %}
     {% endwith %}
 
-    <form method="POST">
-        {{ form.hidden_tag() }}
-
-        <div class="mb-3">
-            {{ form.username.label(class="form-label") }}
-            {{ form.username(class="form-control", autocomplete="off") }}
+    <div class="row">
+        <!-- 🔐 Username & Password Login -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm p-4">
+                <h4 class="mb-3 text-primary">Login with Username & Password</h4>
+                <form method="POST" action="{{ url_for('staff.login') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control", autocomplete="off") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control", autocomplete="off") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.submit(class="btn btn-primary w-100") }}
+                    </div>
+                </form>
+                <div class="text-center mt-2">
+                    <p>
+                        Forgot your
+                        <a href="{{ url_for('staff.forgot_username') }}">Username</a> or
+                        <a href="{{ url_for('staff.forgot_password') }}">Password</a>?
+                    </p>
+                </div>
+            </div>
         </div>
 
-        <div class="mb-3">
-            {{ form.password.label(class="form-label") }}
-            {{ form.password(class="form-control", autocomplete="off") }}
-        </div>
+        <!-- 🧑‍💻 Face Login Option -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm p-4">
+                <h4 class="mb-3 text-success">Login with Face ID</h4>
+                <form method="POST" action="{{ url_for('staff.face_login') }}" id="faceForm">
 
-        <div class="mb-3">
-            {{ form.submit(class="btn btn-primary w-100") }}
+                    <input type="hidden" name="face_image" id="face_image">
+                    <button type="button" class="btn btn-outline-success w-100" onclick="startFaceLogin()">Scan Face</button>
+                </form>
+                <p class="text-muted mt-2">Ensure your webcam is active and facing you properly.</p>
+                <video id="camera" autoplay muted playsinline class="rounded border mt-3" style="width: 100%; display: none;"></video>
+                <div id="loading" class="text-center text-muted mt-2" style="display: none;">Capturing in 5 seconds...</div>
+            </div>
         </div>
+    </div>
 
-        <div class="text-center mt-3">
-            <p>Don't have an account? <a href="{{ url_for('staff.staff_register') }}">Register here</a></p>
-            <p>
-                Forgot your
-                <a href="{{ url_for('staff.forgot_username') }}">Username</a> or
-                <a href="{{ url_for('staff.forgot_password') }}">Password</a>?
-            </p>
-        </div>
-    </form>
+    <div class="text-center mt-4">
+        <a href="{{ url_for('staff.staff_register') }}" class="btn btn-link">New Staff? Register Here</a>
+    </div>
 </div>
 
 <script>
-    // Disable browser back button after logout
-    if (window.history.replaceState) {
-        window.history.replaceState(null, null, window.location.href);
-    }
-    window.addEventListener('popstate', function (event) {
-        window.history.pushState(null, null, window.location.href);
-    });
-</script>
+let stream = null;
 
+function startFaceLogin() {
+    const video = document.getElementById("camera");
+    const loading = document.getElementById("loading");
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(s => {
+            stream = s;
+            video.srcObject = stream;
+            video.style.display = "block";
+            loading.style.display = "block";
+
+            setTimeout(() => {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth || 320;
+                canvas.height = video.videoHeight || 240;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataURL = canvas.toDataURL('image/jpeg');
+
+                // Stop camera
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+                video.style.display = "none";
+                loading.style.display = "none";
+
+                // Submit only if face is actually captured
+                if (dataURL && dataURL.length > 1000) {
+                    document.getElementById("face_image").value = dataURL;
+                    document.getElementById("faceForm").submit();
+                } else {
+                    alert("Face not captured properly. Try again.");
+                }
+            }, 5000); // Delay to let user settle in front of cam
+        })
+        .catch(err => {
+            alert("Camera error: " + err);
+            console.error(err);
+        });
+}
+</script>
 {% endblock %}

@@ -20,12 +20,33 @@
         <p>Welcome, {{ username }}</p>
         <!-- Staff-specific content can go here -->
     {% else %}
-        <h2>Hello, {{ username }}</h2>
-        {% if account_number %}
-          <p>Account Number: {{ account_number }}</p>
-          <p>Balance: ₹{{ balance }}</p>
+        {% if session.get('lang') == 'hi' %}
+        <h2>नमस्ते, {{ username }}</h2>
+        {% elif session.get('lang') == 'ta' %}
+        <h2>வணக்கம், {{ username }}</h2>
+        {% elif session.get('lang') == 'te' %}
+        <h2>నమస్తే, {{ username }}</h2>
+        {% elif session.get('lang') == 'kn' %}
+        <h2>ನಮಸ್ಕಾರ, {{ username }}</h2>
+        {% elif session.get('lang') == 'ml' %}
+        <h2>നമസ്കാരം, {{ username }}</h2>
         {% else %}
-          <p>No account found.</p>
+        <h2>Hello, {{ username }}</h2>
+        {% endif %}
+
+        {% if account_number %}
+            <p>Account Number: {{ account_number }}</p>
+            <p>Balance: ₹{{ balance }}</p>
+
+            <!-- 👇 Deposit, Withdraw, Transfer Buttons -->
+            <div class="mt-4">
+                <a href="{{ url_for('main.deposit') }}" class="btn btn-success me-2">Deposit</a>
+                <a href="{{ url_for('main.withdraw') }}" class="btn btn-warning me-2">Withdraw</a>
+                <a href="{{ url_for('main.transfer') }}" class="btn btn-primary">Transfer</a>
+            </div>
+
+        {% else %}
+            <p>No account found.</p>
         {% endif %}
     {% endif %}
 {% endblock %}

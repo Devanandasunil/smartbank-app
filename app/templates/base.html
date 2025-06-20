@@ -12,11 +12,11 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/filters.css') }}">
+
 
     <style>
-        body {
-            overflow-x: hidden;
-        }
+        body { overflow-x: hidden; }
         #sidebar {
             min-width: 220px;
             max-width: 220px;
@@ -28,8 +28,7 @@
         #sidebar .nav-link {
             color: #adb5bd;
         }
-        #sidebar .nav-link:hover,
-        #sidebar .nav-link.active {
+        #sidebar .nav-link:hover, #sidebar .nav-link.active {
             color: white;
             background-color: #495057;
         }
@@ -93,6 +92,17 @@
 
     <div id="content" class="expanded">
         <div class="container-fluid">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category }} alert-dismissible fade show mt-3 mx-3" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
             {% block content %}{% endblock %}
         </div>
     </div>
@@ -113,6 +123,9 @@
         }
     });
 </script>
+
+<!-- ✅ Add this for child pages to inject their own scripts -->
+{% block scripts %}{% endblock %}
 
 </body>
 </html>

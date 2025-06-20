@@ -3,24 +3,19 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError
 import re
 
-# Helper validator to ensure only bank staff can register via email
 def validate_staff_email(form, field):
-    
     if not re.match(r".+@bank\.com$", field.data):
         raise ValidationError("Only @bank.com emails are allowed for staff registration.")
-from wtforms import StringField
-from wtforms.validators import DataRequired, Email
 
 class StaffLoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
 
-
 class StaffRegisterForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email(), validate_staff_email])
-    mobile_number = StringField('Mobile Number', validators=[DataRequired()])
+    mobile = StringField('Mobile', validators=[DataRequired()])
     staff_key = StringField('Staff Registration Key', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])

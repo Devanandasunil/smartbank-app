@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Face Login{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Staff Face Login</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" onsubmit="return checkFaceData()">
+        <input type="hidden" name="face_image" id="face_image">
+
+        <div class="mb-3 d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary" onclick="startCameraAndLogin()">Scan Face & Login</button>
+        </div>
+
+        <div class="mt-3">
+            <video id="camera" width="320" height="240" autoplay class="border rounded" style="display:none;"></video>
+            <canvas id="snapshot" width="320" height="240" style="display:none;"></canvas>
+            <img id="preview" class="img-thumbnail mt-2" style="display:none;" width="320">
+        </div>
+
+        <div class="mt-4 text-center">
+            <a href="{{ url_for('staff.login') }}" class="btn btn-link">← Use Password Login</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let stream = null;
+
+    function startCameraAndLogin() {
+        const video = document.getElementById("camera");
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(s => {
+                stream = s;
+                video.srcObject = stream;
+                video.style.display = "block";
+                setTimeout(captureAndSubmitFace, 2000); // wait 2 seconds then capture
+            })
+            .catch(err => {
+                alert("Could not access camera: " + err);
+            });
+    }
+
+    function captureAndSubmitFace() {
+        const video = document.getElementById("camera");
+        const canvas = document.getElementById("snapshot");
+        const ctx = canvas.getContext("2d");
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+
+        const dataURL = canvas.toDataURL("image/png");
+        document.getElementById("face_image").value = dataURL;
+
+        document.getElementById("preview").src = dataURL;
+        document.getElementById("preview").style.display = "block";
+        video.style.display = "none";
+
+        document.forms[0].submit();
+    }
+
+    function checkFaceData() {
+        const faceImage = document.getElementById("face_image").value;
+        if (!faceImage || faceImage.trim() === "") {
+            alert("Please scan your face before submitting.");
+            return false;
+        }
+        return true;
+    }
+</script>
+{% endblock %}
+

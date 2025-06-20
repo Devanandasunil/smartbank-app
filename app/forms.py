@@ -32,15 +32,20 @@ class ForgotPasswordForm(FlaskForm):
     ])
     submit = SubmitField('Reset Password')
 
+    
+from flask_wtf import FlaskForm
+from wtforms import StringField, SubmitField, FileField, SelectField, BooleanField
+from wtforms.validators import DataRequired, Email , Length, Optional
 class ProfileForm(FlaskForm):
-    name = StringField('Name', validators=[Optional(), Length(max=150)])
-    place = StringField('Place', validators=[Optional(), Length(max=150)])
-    mobile_number = StringField('Mobile Number', validators=[Optional(), Length(max=20)])
-    email = StringField('Email', validators=[Optional(), Email(), Length(max=150)])
-    photo = FileField('Profile Picture', validators=[
+    name = StringField("Name", validators=[DataRequired()])
+    place = StringField("Place", validators=[Optional(), Length(max=150)])
+    mobile_number = StringField("Mobile Number", validators=[DataRequired(), Length(max=20)])
+    email = StringField("Email", validators=[DataRequired(), Email(), Length(max=150)])
+    profile_image = FileField("Profile Image", validators=[
         FileAllowed(['jpg', 'jpeg', 'png'], 'Images only!')
     ])
-    submit = SubmitField('Update Profile')
+    submit = SubmitField("Update Profile")
+
 
 class DepositForm(FlaskForm):
     amount = DecimalField('Amount', validators=[DataRequired(), NumberRange(min=0.01)])
