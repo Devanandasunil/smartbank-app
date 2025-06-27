@@ -3,7 +3,7 @@
 <h2>Transaction Details</h2>
 <p><strong>Transaction ID:</strong> TNX{{ transaction.timestamp.strftime("%Y%m%d") }}{{ transaction.id }}</p>
 <p><strong>User:</strong> {{ user.name }} ({{ user.email }})</p>
-<p><strong>Date:</strong> {{ transaction.timestamp.strftime('%b %d, %Y at %I:%M %p') }}</p>
+<p><strong>Date:</strong> {{ transaction.local_timestamp.strftime('%b %d, %Y at %I:%M %p') }}</p>
 <p><strong>Type:</strong> {{ transaction.type }}</p>
 <p><strong>Amount:</strong> ₹{{ "%.2f"|format(transaction.amount) }}</p>
 <p><strong>Status:</strong> {{ transaction.status }}</p>

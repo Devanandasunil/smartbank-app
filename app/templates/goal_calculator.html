@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Savings Goal Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .frequency-btn.active { background-color: #3b82f6; color: white; }
+    .result-card { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); }
+    .progress-bar { height: 10px; border-radius: 5px; background-color: #e5e7eb; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); transition: width 0.5s ease; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    
+    <!-- Back Button -->
+    <div class="mb-4">
+      <a href="{{ url_for('main.financial_goals_landing') }}" class="inline-block text-blue-600 hover:text-blue-800">
+        <i class="fas fa-arrow-left mr-1"></i> Back to Goals
+      </a>
+    </div>
+
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
+      <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Savings Goal Calculator</h1>
+
+      <form id="savingsCalculator" class="space-y-6">
+        <div>
+          <label for="goalAmount" class="block text-sm font-medium text-gray-700 mb-1">Goal Amount (₹)</label>
+          <input type="number" id="goalAmount" class="w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="e.g., 50000" required>
+        </div>
+
+        <div>
+          <label for="currentSavings" class="block text-sm font-medium text-gray-700 mb-1">Current Savings (₹)</label>
+          <input type="number" id="currentSavings" class="w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="e.g., 10000" value="0">
+        </div>
+
+        <div>
+          <label for="deadline" class="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
+          <input type="date" id="deadline" class="w-full px-4 py-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <div>
+          <p class="block text-sm font-medium text-gray-700 mb-2">Savings Frequency</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" data-frequency="daily" class="frequency-btn py-2 px-4 border rounded-md">Daily</button>
+            <button type="button" data-frequency="weekly" class="frequency-btn py-2 px-4 border rounded-md">Weekly</button>
+            <button type="button" data-frequency="monthly" class="frequency-btn py-2 px-4 border rounded-md active">Monthly</button>
+            <button type="button" data-frequency="yearly" class="frequency-btn py-2 px-4 border rounded-md">Yearly</button>
+          </div>
+          <input type="hidden" id="frequency" value="monthly">
+        </div>
+
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">
+          Calculate Savings Plan
+        </button>
+      </form>
+
+      <!-- Results -->
+      <div id="results" class="result-card mt-8 p-6 rounded-lg hidden">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Your Savings Plan</h2>
+
+        <div class="mb-4">
+          <p class="text-sm text-gray-600 mb-1">You need to save:</p>
+          <p id="savingsAmount" class="text-2xl font-bold text-blue-600">₹0 <span id="frequencyText" class="text-sm font-normal text-gray-600">per month</span></p>
+        </div>
+
+        <div class="mb-4">
+          <div class="flex justify-between text-sm text-gray-600 mb-1">
+            <span>Progress</span>
+            <span id="progressPercentage">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+          </div>
+          <div class="flex justify-between text-xs text-gray-500 mt-1">
+            <span id="savedAmount">₹0 saved</span>
+            <span id="remainingAmount">₹0 remaining</span>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button onclick="resetCalculator()" class="text-blue-600 text-sm font-medium hover:underline">
+            <i class="fas fa-redo mr-1"></i> Calculate Again
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const defaultDate = new Date();
+      defaultDate.setFullYear(defaultDate.getFullYear() + 1);
+      document.getElementById('deadline').valueAsDate = defaultDate;
+
+      document.querySelectorAll('.frequency-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('.frequency-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          document.getElementById('frequency').value = this.dataset.frequency;
+        });
+      });
+    });
+
+    document.getElementById('savingsCalculator').addEventListener('submit', function (e) {
+      e.preventDefault();
+      calculateSavings();
+    });
+
+    function calculateSavings() {
+      const goalAmount = parseFloat(document.getElementById('goalAmount').value);
+      const currentSavings = parseFloat(document.getElementById('currentSavings').value) || 0;
+      const deadline = new Date(document.getElementById('deadline').value);
+      const frequency = document.getElementById('frequency').value;
+      const today = new Date();
+
+      if (!goalAmount || deadline <= today) return;
+
+      const daysRemaining = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+      const amountNeeded = goalAmount - currentSavings;
+
+      let savingsPerPeriod = 0, frequencyText = '';
+      if (amountNeeded <= 0) {
+        savingsPerPeriod = 0;
+        frequencyText = 'goal reached';
+      } else {
+        switch (frequency) {
+          case 'daily':
+            savingsPerPeriod = amountNeeded / daysRemaining;
+            frequencyText = 'per day';
+            break;
+          case 'weekly':
+            savingsPerPeriod = amountNeeded / Math.ceil(daysRemaining / 7);
+            frequencyText = 'per week';
+            break;
+          case 'monthly':
+            savingsPerPeriod = amountNeeded / Math.ceil(daysRemaining / 30);
+            frequencyText = 'per month';
+            break;
+          case 'yearly':
+            savingsPerPeriod = amountNeeded / (daysRemaining / 365);
+            frequencyText = 'per year';
+            break;
+        }
+      }
+
+      const progress = Math.min(100, (currentSavings / goalAmount * 100)).toFixed(1);
+
+      document.getElementById('savingsAmount').innerHTML = `₹${savingsPerPeriod.toFixed(2).toLocaleString()} <span class="text-sm font-normal text-gray-600">${frequencyText}</span>`;
+      document.getElementById('progressPercentage').textContent = `${progress}%`;
+      document.getElementById('progressFill').style.width = `${progress}%`;
+      document.getElementById('savedAmount').textContent = `₹${currentSavings.toLocaleString()} saved`;
+      document.getElementById('remainingAmount').textContent = `₹${amountNeeded.toLocaleString()} remaining`;
+
+      document.getElementById('results').classList.remove('hidden');
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function resetCalculator() {
+      document.getElementById('savingsCalculator').reset();
+      document.getElementById('results').classList.add('hidden');
+
+      const resetDate = new Date();
+      resetDate.setFullYear(resetDate.getFullYear() + 1);
+      document.getElementById('deadline').valueAsDate = resetDate;
+
+      document.querySelectorAll('.frequency-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('.frequency-btn[data-frequency="monthly"]').classList.add('active');
+      document.getElementById('frequency').value = 'monthly';
+    }
+  </script>
+</body>
+</html>

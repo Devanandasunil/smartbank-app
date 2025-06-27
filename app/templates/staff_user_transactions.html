@@ -72,7 +72,7 @@
                             </td>
                             <td class="px-6 py-4">
                                 <p class="font-medium">{{ tx.description or 'Bank Transaction' }}</p>
-                                <p class="text-xs text-gray-500">{{ tx.timestamp.strftime('%b %d, %Y at %I:%M %p') }}</p>
+                                <p class="text-xs text-gray-500">{{ tx.local_timestamp.strftime('%b %d, %Y at %I:%M %p') }}</p>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="font-semibold {% if tx.amount > 0 %}text-green-600{% else %}text-red-600{% endif %}">

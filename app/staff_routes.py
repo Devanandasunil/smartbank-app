@@ -165,7 +165,7 @@ def face_login():
     except Exception as e:
         flash(f"Face login error: {e}", "danger")
         return redirect(url_for("staff.login"))
-
+    
 @staff_bp.route('/dashboard')
 @nocache
 @staff_required
@@ -266,6 +266,7 @@ def view_customers():
 @staff_required
 def view_user_transactions(user_id):
     from datetime import datetime, timedelta
+    import pytz
 
     user = User.query.get_or_404(user_id)
     tx_type = request.args.get("type")
@@ -316,6 +317,12 @@ def view_user_transactions(user_id):
     transactions = pagination.items
     total_transactions = pagination.total
 
+    # Convert UTC to IST
+    indian_time = pytz.timezone('Asia/Kolkata')
+    for tx in transactions:
+        if tx.timestamp:
+            tx.local_timestamp = tx.timestamp.replace(tzinfo=pytz.utc).astimezone(indian_time)
+    
     return render_template(
         "staff_user_transactions.html",
         user=user,
@@ -328,21 +335,33 @@ def view_user_transactions(user_id):
         search_query=search
     )
 
+from flask import make_response
+from io import StringIO
+import csv
+import pytz
 
 @staff_bp.route('/staff/customer/<int:user_id>/export_transactions')
 @nocache
 @staff_required
 def export_customer_transactions(user_id):
-    transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.timestamp.desc()).all()
+    user = User.query.get_or_404(user_id)
+    transactions = Transaction.query.filter_by(user_id=user.id).order_by(Transaction.timestamp.desc()).all()
 
+    # Convert timestamps to IST
+    ist = pytz.timezone('Asia/Kolkata')
+    for tx in transactions:
+        if tx.timestamp:
+            tx.local_timestamp = tx.timestamp.replace(tzinfo=pytz.utc).astimezone(ist)
+
+    # Generate CSV content
     si = StringIO()
     cw = csv.writer(si)
-    cw.writerow(['Transaction ID', 'Date', 'Type', 'Amount', 'Status', 'Description'])
+    cw.writerow(['Transaction ID', 'Date (IST)', 'Type', 'Amount', 'Status', 'Description'])
 
     for tx in transactions:
         cw.writerow([
             f'TNX{tx.timestamp.strftime("%Y%m%d")}{tx.id:04}',
-            tx.timestamp.strftime("%b %d, %Y at %I:%M %p"),
+            tx.local_timestamp.strftime("%b %d, %Y at %I:%M %p"),
             'Credit' if tx.amount > 0 else 'Debit',
             f"{tx.amount:.2f}",
             tx.status,
@@ -350,7 +369,7 @@ def export_customer_transactions(user_id):
         ])
 
     output = make_response(si.getvalue())
-    output.headers["Content-Disposition"] = f"attachment; filename=transactions_user_{user_id}.csv"
+    output.headers["Content-Disposition"] = f"attachment; filename=transactions_{user.username}.csv"
     output.headers["Content-type"] = "text/csv"
     return output
 
@@ -397,6 +416,12 @@ def forgot_password():
 def view_transaction_detail(transaction_id):
     transaction = Transaction.query.get_or_404(transaction_id)
     user = User.query.get(transaction.user_id)
+
+    import pytz
+    indian_time = pytz.timezone('Asia/Kolkata')
+    if transaction.timestamp:
+        transaction.local_timestamp = transaction.timestamp.replace(tzinfo=pytz.utc).astimezone(indian_time)
+
     return render_template("staff_transaction_detail.html", transaction=transaction, user=user)
 
 

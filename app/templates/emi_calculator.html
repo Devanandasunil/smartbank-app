@@ -1,47 +1,102 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EMI Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .input-highlight:focus {
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+      border-color: #3b82f6;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+  <div class="max-w-xl w-full bg-white rounded-xl shadow-lg p-6">
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <h1 class="text-3xl font-bold text-indigo-700">📈 EMI Calculator</h1>
+      <p class="text-sm text-gray-500 mt-1">Calculate your monthly loan payments</p>
+    </div>
 
-{% block title %}EMI Calculator{% endblock %}
-
-{% block content %}
-<div class="container mt-5">
-  <h2 class="mb-4">EMI Calculator</h2>
-
-  <div class="card shadow-sm p-3">
-    <form method="POST" action="{{ url_for('customer.emi_calculator') }}">
-      <div class="mb-3">
-        <label for="principal" class="form-label">Principal Amount:</label>
-        <input type="number" class="form-control" id="principal" name="principal" placeholder="Enter principal amount" required>
-      </div>
-
-      <div class="mb-3">
-        <label for="interest_rate" class="form-label">Annual Interest Rate (%):</label>
-        <input type="number" class="form-control" id="interest_rate" name="interest_rate" placeholder="Enter interest rate" required>
-      </div>
-
-      <div class="mb-3">
-        <label for="tenure" class="form-label">Loan Tenure (Months):</label>
-        <input type="number" class="form-control" id="tenure" name="tenure" placeholder="Enter loan tenure in months" required>
-      </div>
-
-      <button type="submit" class="btn btn-primary">Calculate EMI</button>
-      <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary ms-2">Back to Dashboard</a>
-    </form>
-
-    {% if emi %}
-      <div class="mt-3 alert alert-success">
-        <h2>Your EMI is: ₹{{ "{:.2f}".format(emi) }}</h2>
-      </div>
-    {% endif %}
-
+    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <div class="mt-3">
+        <div class="mb-4">
           {% for category, message in messages %}
-            <div class="alert alert-{{ category }}">{{ message }}</div>
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-2">
+              {{ message }}
+            </div>
           {% endfor %}
         </div>
       {% endif %}
     {% endwith %}
+
+    <!-- Form -->
+    <form method="POST" action="{{ url_for('customer.emi_calculator') }}" class="space-y-5">
+      <div>
+        <label for="principal" class="block text-sm font-medium text-gray-700">💰 Principal Amount (₹)</label>
+        <input type="number" name="principal" id="principal" value="{{ principal or '' }}"
+               placeholder="e.g. 100000" required
+               class="input-highlight mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none">
+      </div>
+
+      <div>
+        <label for="interest_rate" class="block text-sm font-medium text-gray-700">📉 Annual Interest Rate (%)</label>
+        <input type="number" name="interest_rate" id="interest_rate" value="{{ interest_rate or '' }}"
+               placeholder="e.g. 7.5" required step="0.01"
+               class="input-highlight mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">📆 Loan Tenure</label>
+        <div class="flex gap-4 mt-1">
+          <select name="tenure_unit" required class="input-highlight block w-1/2 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none">
+            <option value="months" {% if tenure_unit == 'months' %}selected{% endif %}>Months</option>
+            <option value="years" {% if tenure_unit == 'years' %}selected{% endif %}>Years</option>
+          </select>
+          <input type="number" name="tenure" value="{{ tenure_value or '' }}"
+                 placeholder="e.g. 24" required
+                 class="input-highlight block w-1/2 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none">
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center mt-6">
+        <button type="submit" class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition">
+          Calculate EMI
+        </button>
+        <a href="{{ url_for('main.dashboard') }}" class="text-sm text-indigo-600 hover:underline">← Back to Dashboard</a>
+      </div>
+    </form>
+
+    <!-- Results -->
+    {% if emi %}
+      <div class="mt-8 bg-indigo-50 border border-indigo-200 rounded-lg p-5">
+        <h3 class="text-lg font-semibold text-indigo-700 mb-2">Your Loan Summary</h3>
+        <div class="grid grid-cols-2 gap-4 text-sm text-gray-700">
+          <div>
+            <p class="text-gray-500">📆 Tenure</p>
+            <p class="font-semibold">{{ tenure_display }}</p>
+          </div>
+          <div>
+            <p class="text-gray-500">💸 EMI</p>
+            <p class="font-semibold text-indigo-700 text-lg">₹{{ "{:,.2f}".format(emi) }}</p>
+          </div>
+          <div>
+            <p class="text-gray-500">💼 Total Interest</p>
+            <p class="font-semibold">₹{{ "{:,.2f}".format(total_interest) }}</p>
+          </div>
+          <div>
+            <p class="text-gray-500">🏦 Total Payment</p>
+            <p class="font-semibold">₹{{ "{:,.2f}".format(total_payment) }}</p>
+          </div>
+        </div>
+      </div>
+    {% endif %}
   </div>
-</div>
-{% endblock %}
+</body>
+</html>

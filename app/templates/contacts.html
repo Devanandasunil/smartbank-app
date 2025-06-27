@@ -1,15 +1,30 @@
-<h2>My Contacts</h2>
-<form method="GET">
-  <input type="text" name="search" placeholder="Search..." value="{{ search }}">
-  <button type="submit">Search</button>
-</form>
+{% extends "base.html" %}
+{% block title %}Saved Contacts{% endblock %}
 
-<ul>
-  {% for contact in contacts %}
-    <li>
-      <img src="{{ url_for('static', filename='img/user-icon.png') }}" width="30">
-      {{ contact.name }} ({{ contact.account_number }})
-      <a href="{{ url_for('customer.edit_contact', id=contact.id) }}">Edit</a>
-      <a href="{{ url_for('customer.delete_contact', id=contact.id) }}" onclick="return confirm('Delete?')">Delete</a>
-    </li>
-  {% endfor %}
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4">Saved Contacts</h2>
+
+  {% if contacts %}
+    <div class="row">
+      {% for contact in contacts %}
+        <div class="col-md-4">
+          <div class="card mb-3 shadow-sm">
+            <div class="card-body d-flex align-items-center justify-content-between">
+              <div>
+                <h5 class="card-title mb-1">{{ contact.name }}</h5>
+                <p class="card-text mb-1 text-muted">Account: {{ contact.account_number }}</p>
+              </div>
+              <a href="{{ url_for('customer.transfer') }}?name={{ contact.name }}&acc={{ contact.account_number }}" class="btn btn-sm btn-primary">Transfer</a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">You haven't saved any contacts yet.</p>
+  {% endif %}
+
+  <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary mt-4">← Back to Dashboard</a>
+</div>
+{% endblock %}

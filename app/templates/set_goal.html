@@ -1,33 +1,86 @@
 {% extends "base.html" %}
-{% block title %}Set Financial Goal{% endblock %}
+{% block title %}Set Goal{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-  <h2 class="mb-4">Set Financial Goal</h2>
-  <form method="POST">
-    {{ form.hidden_tag() }}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
 
-    <div class="mb-3">
-      <label for="{{ form.target_amount.id }}" class="form-label">Target Amount</label>
-      {{ form.target_amount(class="form-control", placeholder="Enter target amount") }}
-      {% for error in form.target_amount.errors %}
-        <div class="text-danger">{{ error }}</div>
-      {% endfor %}
-    </div>
+      <!-- Back Button -->
+      <a href="{{ url_for('main.financial_goals_landing') }}" class="btn btn-outline-secondary mb-3">
+        <i class="fas fa-arrow-left me-1"></i> Back
+      </a>
 
-    <div class="mb-3">
-      <label for="{{ form.deadline.id }}" class="form-label">Deadline (YYYY-MM-DD)</label>
-      {{ form.deadline(class="form-control", placeholder="dd-mm-yyyy") }}
-      <small class="form-text text-muted">Format: YYYY-MM-DD (e.g., 2025-12-31)</small>
-      {% for error in form.deadline.errors %}
-        <div class="text-danger">{{ error }}</div>
-      {% endfor %}
-    </div>
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h2 class="h4 mb-4">Set New Goal</h2>
 
-    <div class="mb-3">
-      {{ form.submit(class="btn btn-primary") }}
-      <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary ms-2">Back to Dashboard</a>
+          <form method="POST" action="{{ url_for('main.set_goal') }}">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+              {{ form.goalName.label(class="form-label") }}
+              {{ form.goalName(class="form-control") }}
+            </div>
+
+            <div class="mb-3">
+              {{ form.goalAmount.label(class="form-label") }}
+              {{ form.goalAmount(class="form-control") }}
+            </div>
+
+            <div class="mb-3">
+              {{ form.currentSavings.label(class="form-label") }}
+              {{ form.currentSavings(class="form-control") }}
+            </div>
+
+            <div class="mb-3">
+              {{ form.deadline.label(class="form-label") }}
+              {{ form.deadline(class="form-control", id="deadline") }}
+            </div>
+
+            <div class="mb-3">
+              {{ form.savingsMode.label(class="form-label") }}
+              {{ form.savingsMode(class="form-select", id="savingsMode") }}
+            </div>
+
+            <div class="mb-3" id="frequencyOptions" style="display: none;">
+              <label for="frequency" class="form-label">Frequency</label>
+              <select name="frequency" id="frequency" class="form-select">
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly" selected>Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100">
+              Save Goal <i class="fas fa-bullseye ms-2"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+
     </div>
-  </form>
+  </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const savingsMode = document.getElementById('savingsMode');
+    const frequencyOptions = document.getElementById('frequencyOptions');
+
+    savingsMode.addEventListener('change', function () {
+      if (this.value === 'on') {
+        frequencyOptions.style.display = 'block';
+      } else {
+        frequencyOptions.style.display = 'none';
+      }
+    });
+
+    const deadline = document.getElementById('deadline');
+    const today = new Date();
+    today.setMonth(today.getMonth() + 3);
+    deadline.valueAsDate = today;
+  });
+</script>
 {% endblock %}

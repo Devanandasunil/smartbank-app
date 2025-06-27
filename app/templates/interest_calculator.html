@@ -1,31 +1,100 @@
-{% extends "base.html" %}
-{% block title %}Loan Interest Calculator{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Interest Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .result-card {
+      background: linear-gradient(135deg, #e0f7fa 0%, #e0f2fe 100%);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-white min-h-screen">
 
-{% block content %}
-<div class="container mt-4">
-  <h2>Loan Interest Calculator</h2>
-  <form method="POST">
-    <div class="form-group">
-      <label>Loan Amount (₹)</label>
-      <input type="number" name="principal" class="form-control" required>
+  <div class="container mx-auto px-4 py-10">
+    <!-- Back Button -->
+    <div class="mb-6">
+      <a href="{{ url_for('main.dashboard') }}" class="inline-block text-blue-700 hover:text-blue-900 font-medium">
+        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+      </a>
     </div>
-    <div class="form-group">
-      <label>Annual Interest Rate (%)</label>
-      <input type="number" step="0.01" name="rate" class="form-control" required>
-    </div>
-    <div class="form-group">
-      <label>Loan Duration (Months)</label>
-      <input type="number" name="time" class="form-control" required>
-    </div>
-    <button type="submit" class="btn btn-primary mt-3">Calculate</button>
-  </form>
 
-  {% if result %}
-  <div class="mt-4 alert alert-info">
-    <strong>EMI:</strong> ₹{{ result.emi }} <br>
-    <strong>Total Payment:</strong> ₹{{ result.total_payment }} <br>
-    <strong>Total Interest:</strong> ₹{{ result.total_interest }}
+    <!-- Calculator Box -->
+    <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-8">
+      <h1 class="text-3xl font-bold text-blue-800 text-center mb-6">💸 Interest Calculator</h1>
+
+      <form id="interestForm" class="space-y-6">
+        <div>
+          <label for="principal" class="block text-sm font-medium text-gray-700 mb-1">Loan Amount (₹)</label>
+          <input type="number" id="principal" class="w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="e.g., 100000" required>
+        </div>
+
+        <div>
+          <label for="rate" class="block text-sm font-medium text-gray-700 mb-1">Annual Interest Rate (%)</label>
+          <input type="number" id="rate" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="e.g., 7.5" required>
+        </div>
+
+        <div>
+          <label for="time" class="block text-sm font-medium text-gray-700 mb-1">Time Duration (in Years)</label>
+          <input type="number" id="time" step="0.1" class="w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="e.g., 5" required>
+        </div>
+
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md font-semibold hover:bg-blue-700 transition">
+          Calculate Interest
+        </button>
+      </form>
+
+      <!-- Results -->
+      <div id="results" class="result-card mt-8 p-6 rounded-lg hidden">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">🧾 Loan Summary</h2>
+        <div class="mb-3">
+          <p class="text-gray-600 text-sm mb-1">Total Interest:</p>
+          <p id="interestAmount" class="text-2xl font-bold text-blue-700">₹0</p>
+        </div>
+        <div class="mb-2">
+          <p class="text-gray-600 text-sm mb-1">Total Repayment (Principal + Interest):</p>
+          <p id="totalAmount" class="text-2xl font-bold text-green-600">₹0</p>
+        </div>
+        <div class="text-center mt-4">
+          <button onclick="resetForm()" class="text-blue-600 text-sm hover:underline">
+            <i class="fas fa-redo mr-1"></i>Calculate Again
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
-  {% endif %}
-</div>
-{% endblock %}
+
+  <script>
+    document.getElementById('interestForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      calculateInterest();
+    });
+
+    function calculateInterest() {
+      const P = parseFloat(document.getElementById('principal').value);
+      const R = parseFloat(document.getElementById('rate').value);
+      const T = parseFloat(document.getElementById('time').value);
+
+      if (!P || !R || !T) return;
+
+      const interest = (P * R * T) / 100;
+      const total = P + interest;
+
+      document.getElementById('interestAmount').textContent = `₹${interest.toFixed(2).toLocaleString()}`;
+      document.getElementById('totalAmount').textContent = `₹${total.toFixed(2).toLocaleString()}`;
+
+      document.getElementById('results').classList.remove('hidden');
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function resetForm() {
+      document.getElementById('interestForm').reset();
+      document.getElementById('results').classList.add('hidden');
+    }
+  </script>
+
+</body>
+</html>

@@ -25,12 +25,11 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Login')
 
 class ForgotPasswordForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    new_password = PasswordField('New Password', validators=[DataRequired(), Length(min=6)])
-    confirm_password = PasswordField('Confirm Password', validators=[
-        DataRequired(), EqualTo('new_password', message='Passwords must match.')
-    ])
-    submit = SubmitField('Reset Password')
+    email = StringField("Email", validators=[DataRequired(), Email()])
+    new_password = PasswordField("New Password", validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo('new_password')])
+    submit = SubmitField("Reset Password")
+
 
     
 from flask_wtf import FlaskForm
@@ -67,18 +66,18 @@ class LoanForm(FlaskForm):
     reason = TextAreaField('Loan Reason', validators=[DataRequired()])
     submit = SubmitField('Apply for Loan')
 
-class GoalBasicForm(FlaskForm):
-    target_amount = FloatField(
-        "Target Amount (₹)",
-        validators=[DataRequired(), NumberRange(min=0.01)]
-    )
-    deadline = DateField(
-        "Deadline (YYYY-MM-DD)",
-        format="%Y-%m-%d",
-        validators=[DataRequired()]
-    )
-    saving_mode = SelectField(
-        "Saving Mode",
+
+from flask_wtf import FlaskForm
+from wtforms import StringField, FloatField, DateField, SelectField, SubmitField
+from wtforms.validators import DataRequired
+
+class SetGoalForm(FlaskForm):
+    goalName = StringField("Goal Name", validators=[DataRequired()])
+    goalAmount = FloatField("Target Amount", validators=[DataRequired()])
+    currentSavings = FloatField("Current Savings", default=0.0)
+    deadline = DateField("Deadline", format="%Y-%m-%d", validators=[DataRequired()])
+    savingsMode = SelectField(
+        "Savings Mode",
         choices=[
             ("NONE", "None"),
             ("DAILY", "Daily"),
@@ -89,35 +88,4 @@ class GoalBasicForm(FlaskForm):
         default="NONE",
         validators=[DataRequired()]
     )
-    daily_amount = FloatField(
-        "Daily Amount", validators=[Optional(), NumberRange(min=0.0)]
-    )
-    weekly_amount = FloatField(
-        "Weekly Amount", validators=[Optional(), NumberRange(min=0.0)]
-    )
-    monthly_amount = FloatField(
-        "Monthly Amount", validators=[Optional(), NumberRange(min=0.0)]
-    )
-    yearly_amount = FloatField(
-        "Yearly Amount", validators=[Optional(), NumberRange(min=0.0)]
-    )
     submit = SubmitField("Save Goal")
-    
-class SavingModeForm(FlaskForm):
-    saving_mode = SelectField(
-        "Saving Mode",
-        choices=[
-            ("NONE", "None"),
-            ("DAILY", "Daily"),
-            ("WEEKLY", "Weekly"),
-            ("MONTHLY", "Monthly"),
-            ("YEARLY", "Yearly"),
-        ],
-        validators=[DataRequired()]
-    )
-    daily_amount = FloatField("Daily Amount", validators=[Optional(), NumberRange(min=0.0)])
-    weekly_amount = FloatField("Weekly Amount", validators=[Optional(), NumberRange(min=0.0)])
-    monthly_amount = FloatField("Monthly Amount", validators=[Optional(), NumberRange(min=0.0)])
-    yearly_amount = FloatField("Yearly Amount", validators=[Optional(), NumberRange(min=0.0)])
-    submit = SubmitField("Save Saving Mode")
-

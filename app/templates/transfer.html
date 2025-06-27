@@ -7,16 +7,16 @@
 
   <!-- 🔁 Transfer Form -->
   <form method="POST" action="{{ url_for('customer.transfer') }}">
-    {{ form.hidden_tag() }}
-
     <div class="form-group">
       <label for="beneficiary_name">Beneficiary Name</label>
-      <input type="text" class="form-control" id="beneficiary_name" name="beneficiary_name" required>
+      <input type="text" class="form-control" id="beneficiary_name" name="beneficiary_name"
+             value="{{ prefill_name or '' }}" required>
     </div>
 
     <div class="form-group mt-2">
       <label for="account_number">Account Number</label>
-      <input type="text" class="form-control" id="account_number" name="account_number" required>
+      <input type="text" class="form-control" id="account_number" name="account_number"
+             value="{{ prefill_acc or '' }}" required>
     </div>
 
     <div class="form-group mt-2">
@@ -32,28 +32,29 @@
     <button type="submit" class="btn btn-primary mt-3">Transfer</button>
   </form>
 
+  <!-- 🔗 View Saved Contacts Page -->
+  <div class="mt-4">
+    <a href="{{ url_for('customer.view_contacts') }}" class="btn btn-outline-secondary btn-sm">
+      📇 View All Saved Contacts
+    </a>
+  </div>
+
   <!-- 🔁 Recent Recipients Section -->
   {% if saved_contacts %}
   <hr>
   <h4 class="mt-4">Recent Recipients</h4>
   <ul class="list-group">
     {% for contact in saved_contacts %}
-    <li class="list-group-item d-flex align-items-center">
-      <img src="{{ url_for('static', filename='uploads/default.png') }}" alt="Profile" width="30" class="me-2">
-      <button type="button" class="btn btn-link p-0 text-decoration-none" onclick="prefillTransfer('{{ contact.name }}', '{{ contact.account_number }}')">
+    <li class="list-group-item d-flex align-items-center justify-content-between">
+      <div>
+        <img src="{{ url_for('static', filename='uploads/default.png') }}" alt="Profile" width="30" class="me-2">
         {{ contact.name }} ({{ contact.account_number }})
-      </button>
+      </div>
+      <a href="{{ url_for('customer.transfer', name=contact.name, acc=contact.account_number) }}"
+         class="btn btn-sm btn-outline-primary">Transfer</a>
     </li>
     {% endfor %}
   </ul>
   {% endif %}
 </div>
-
-<!-- 🧠 JS for Prefilling Form -->
-<script>
-  function prefillTransfer(name, accNo) {
-    document.getElementById('beneficiary_name').value = name;
-    document.getElementById('account_number').value = accNo;
-  }
-</script>
 {% endblock %}

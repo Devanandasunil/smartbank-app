@@ -36,7 +36,10 @@
 
         {% if account_number %}
             <p>Account Number: {{ account_number }}</p>
-            <p>Balance: ₹{{ balance }}</p>
+            <p><strong>💵 Usable Balance:</strong> ₹{{ "%.2f"|format(usable_balance) }}</p>
+            <p><strong>🔒 Smart Saver (Goal Savings):</strong> ₹{{ "%.2f"|format(goal_savings) }}</p>
+            <hr>
+            <p><strong>🧾 Total Balance:</strong> ₹{{ "%.2f"|format(balance) }}</p>
 
             <!-- 👇 Deposit, Withdraw, Transfer Buttons -->
             <div class="mt-4">

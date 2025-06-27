@@ -18,10 +18,11 @@
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link text-white {% if request.endpoint == 'main.goals' %}active{% endif %}" href="{{ url_for('main.goals') }}">
+        <a class="nav-link text-white {% if request.endpoint == 'main.financial_goals_landing' %}active{% endif %}" href="{{ url_for('main.financial_goals_landing') }}">
           <i class="bi bi-bullseye"></i> Financial Goals
         </a>
       </li>
+
       <li class="nav-item">
         <a class="nav-link text-white {% if request.endpoint == 'main.transactions' %}active{% endif %}" href="{{ url_for('main.transactions') }}">
           <i class="bi bi-clock-history"></i> Transaction History

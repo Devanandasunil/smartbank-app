@@ -16,7 +16,8 @@
             <tbody>
             {% for tx in transactions %}
                 <tr>
-                    <td>{{ "TNX" + tx.timestamp.strftime('%Y%m%d') + str(tx.id).zfill(4) }}</td>
+                    <td>{{ "TNX" + tx.local_timestamp.strftime('%Y%m%d') + ("%04d"|format(tx.id)) }}</td>
+                    <td>{{ tx.local_timestamp.strftime('%b %d, %Y at %I:%M %p') }}</td>
                     <td>{{ 'Credit' if tx.amount > 0 else 'Debit' }}</td>
                     <td>₹{{ tx.amount }}</td>
                     <td>{{ tx.status }}</td>

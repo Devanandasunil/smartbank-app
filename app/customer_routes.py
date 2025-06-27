@@ -37,12 +37,20 @@ def dashboard():
     account = current_user.account
     balance = account.balance if account else 0.0
     account_number = account.account_number if account else None
+
+    # Calculate smart saver savings
+    goal_savings = sum(goal.smart_saver_balance for goal in current_user.goals) if hasattr(current_user, 'goals') else 0.0
+    usable_balance = balance - goal_savings
+
     return render_template(
         "dashboard.html",
         username=current_user.username,
         account_number=account_number,
-        balance=balance
+        balance=balance,
+        usable_balance=usable_balance,
+        goal_savings=goal_savings
     )
+
 
 @customer_bp.route('/logout')
 @login_required
@@ -109,15 +117,49 @@ def register():
 @login_required
 def emi_calculator():
     emi = None
+    total_payment = None
+    total_interest = None
+    tenure_display = ""
+    principal = request.form.get('principal', '')
+    interest_rate = request.form.get('interest_rate', '')
+    tenure_value = request.form.get('tenure', '')
+    tenure_unit = request.form.get('tenure_unit', 'months')
+
     if request.method == 'POST':
         try:
-            principal = float(request.form['principal'])
-            rate = float(request.form['interest_rate']) / 12 / 100
-            tenure = int(request.form['tenure'])
-            emi = (principal * rate * (1 + rate) ** tenure) / ((1 + rate) ** tenure - 1)
+            principal = float(principal)
+            rate = float(interest_rate)
+            tenure = int(tenure_value)
+
+            if principal <= 0 or rate <= 0 or tenure <= 0 or not (1 <= rate <= 30):
+                raise ValueError
+
+            # Convert years to months if needed
+            if tenure_unit == 'years':
+                tenure_months = tenure * 12
+                tenure_display = f"{tenure} Years"
+            else:
+                tenure_months = tenure
+                tenure_display = f"{tenure} Months"
+
+            monthly_rate = rate / 12 / 100
+            emi = (principal * monthly_rate * (1 + monthly_rate) ** tenure_months) / ((1 + monthly_rate) ** tenure_months - 1)
+            total_payment = emi * tenure_months
+            total_interest = total_payment - principal
+
         except Exception:
             flash('Invalid input. Please enter valid numbers.', 'danger')
-    return render_template('emi_calculator.html', emi=emi)
+
+    return render_template('emi_calculator.html',
+                           emi=emi,
+                           total_payment=total_payment,
+                           total_interest=total_interest,
+                           principal=principal,
+                           interest_rate=interest_rate,
+                           tenure_value=tenure_value,
+                           tenure_unit=tenure_unit,
+                           tenure_display=tenure_display)
+
 
 @customer_bp.route('/deposit', methods=['GET', 'POST'])
 @login_required
@@ -163,26 +205,89 @@ def withdraw():
 @customer_bp.route('/transfer', methods=['GET', 'POST'])
 @login_required
 def transfer():
-    form = TransferForm()
-    if form.validate_on_submit():
-        recipient_acc_num = form.recipient_account.data
-        amount = float(form.amount.data)
+    if request.method == 'POST':
+        beneficiary_name = request.form.get('beneficiary_name')
+        account_number = request.form.get('account_number')
+        amount_str = request.form.get('amount')
+        save_contact = request.form.get('save_contact')
 
-        sender_account = current_user.account
-        recipient_account = Account.query.filter_by(account_number=recipient_acc_num).first()
+        try:
+            amount = float(amount_str)
+        except ValueError:
+            flash("Invalid amount entered.", "danger")
+            return redirect(url_for('customer.transfer'))
 
-        if not recipient_account:
-            flash("Recipient account not found.", "danger")
-        elif sender_account.balance < amount:
+        sender = current_user.account
+        recipient = Account.query.filter_by(account_number=account_number).first()
+
+        if not recipient:
+            flash("Recipient not found.", "danger")
+        elif recipient.id == sender.id:
+            flash("Cannot transfer to your own account.", "warning")
+        elif amount <= 0:
+            flash("Amount must be greater than 0.", "warning")
+        elif sender.balance < amount:
             flash("Insufficient funds.", "danger")
         else:
-            sender_account.balance -= amount
-            recipient_account.balance += amount
+            # 💸 Adjust balances
+            sender.balance -= amount
+            recipient.balance += amount
+
+            # 🧾 Log sender's transaction
+            txn_sender = Transaction(
+                user_id=current_user.id,
+                type='Transfer',
+                amount=amount,
+                recipient_account=account_number,
+                beneficiary_name=beneficiary_name,
+                status="Success"
+            )
+            db.session.add(txn_sender)
+
+            # 🧾 Log recipient's transaction as 'Received'
+            txn_recipient = Transaction(
+                user_id=recipient.user_id,
+                type='Received',
+                amount=amount,
+                recipient_account=sender.account_number,
+                beneficiary_name=current_user.name,
+                status="Success"
+            )
+            db.session.add(txn_recipient)
+
+            # 💾 Save contact if checkbox is checked
+            if save_contact:
+                exists = SavedContact.query.filter_by(
+                    user_id=current_user.id,
+                    account_number=account_number
+                ).first()
+                if not exists:
+                    new_contact = SavedContact(
+                        user_id=current_user.id,
+                        name=beneficiary_name,
+                        account_number=account_number
+                    )
+                    db.session.add(new_contact)
+
             db.session.commit()
             flash("Transfer successful!", "success")
             return redirect(url_for('main.dashboard'))
+    #Get request
+    saved_contacts = SavedContact.query.filter_by(user_id=current_user.id).all()
+    prefill_name = request.args.get('name')
+    prefill_acc = request.args.get('acc')
+    return render_template("transfer.html", saved_contacts=saved_contacts,
+                           prefill_name=prefill_name, prefill_acc=prefill_acc)
 
-    return render_template('transfer.html', form=form)
+   
+### ✅ 1. ROUTE: /contacts (customer_routes.py)
+@customer_bp.route('/contacts')
+@login_required
+def view_contacts():
+    contacts = SavedContact.query.filter_by(user_id=current_user.id).all()
+    return render_template("contacts.html", contacts=contacts)
+
+
 
 @customer_bp.route('/transfer-recents', methods=['GET', 'POST'])
 @login_required
@@ -320,4 +425,16 @@ def report_transaction(transaction_id):
         flash("Transaction reported successfully.", "success")
 
     return redirect(url_for('customer_bp.transactions'))
+
+@customer_bp.route("/undo_report_transaction/<int:transaction_id>", methods=["POST"])
+@login_required
+def undo_report_transaction(transaction_id):
+    report = SpamReport.query.filter_by(transaction_id=transaction_id, user_id=current_user.id).first()
+    if report:
+        db.session.delete(report)
+        db.session.commit()
+        flash("Report undone successfully", "success")
+    else:
+        flash("Report not found.", "warning")
+    return redirect(url_for('main.transactions'))
 

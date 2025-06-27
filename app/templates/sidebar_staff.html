@@ -1,36 +1,45 @@
 <nav id="sidebar" class="bg-dark">
   <div class="p-3">
-    <h4>Staff Menu</h4>
+    <h4 class="text-white">Staff Menu</h4>
     <ul class="nav flex-column">
       <li class="nav-item">
-        <a class="nav-link" href="{{ url_for('main.home') }}">
+        <a class="nav-link text-white {% if request.endpoint == 'main.home' %}active{% endif %}" href="{{ url_for('main.home') }}">
           <i class="bi bi-house"></i> Home
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link {% if request.endpoint == 'staff.dashboard' %}active{% endif %}" href="{{ url_for('staff.dashboard') }}">Dashboard</a>
+        <a class="nav-link text-white {% if request.endpoint == 'staff.dashboard' %}active{% endif %}" href="{{ url_for('staff.dashboard') }}">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link {% if request.endpoint == 'staff.approve_loans' %}active{% endif %}" href="{{ url_for('staff.approve_loans') }}">Approve Loans</a>
+        <a class="nav-link text-white {% if request.endpoint == 'staff.approve_loans' %}active{% endif %}" href="{{ url_for('staff.approve_loans') }}">
+          <i class="bi bi-cash-coin"></i> Approve Loans
+        </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link {% if request.endpoint == 'staff.view_reports' %}active{% endif %}" href="{{ url_for('staff.view_reports') }}">View Reports / Spam</a>
+        <a class="nav-link text-white {% if request.endpoint == 'staff.view_reports' %}active{% endif %}" href="{{ url_for('staff.view_reports') }}">
+          <i class="bi bi-flag"></i> View Reports / Spam
+        </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link {% if request.endpoint == 'staff.view_customers' %}active{% endif %}" href="{{ url_for('staff.view_customers') }}">View Users & Transactions</a>
+        <a class="nav-link text-white {% if request.endpoint == 'staff.view_customers' %}active{% endif %}" href="{{ url_for('staff.view_customers') }}">
+          <i class="bi bi-people"></i> View Users & Transactions
+        </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link {% if request.endpoint == 'staff.approved_loans' %}active{% endif %}" href="{{ url_for('staff.approved_loans') }}">Approved Loans</a>
+        <a class="nav-link text-white {% if request.endpoint == 'staff.approved_loans' %}active{% endif %}" href="{{ url_for('staff.approved_loans') }}">
+          <i class="bi bi-check-circle"></i> Approved Loans
+        </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link {% if request.endpoint == 'staff.rejected_loans' %}active{% endif %}" href="{{ url_for('staff.rejected_loans') }}">Rejected Loans</a>
+        <a class="nav-link text-white {% if request.endpoint == 'staff.rejected_loans' %}active{% endif %}" href="{{ url_for('staff.rejected_loans') }}">
+          <i class="bi bi-x-circle"></i> Rejected Loans
+        </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link text-danger fw-bold" href="{{ url_for('staff.logout') }}">🚪 Logout</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link text-white {% if request.endpoint == 'main.landing' %}active{% endif %}" href="{{ url_for('main.landing') }}">
-          <i class="bi bi-globe"></i> Home
+        <a class="nav-link text-danger fw-bold" href="{{ url_for('staff.logout') }}">
+          <i class="bi bi-box-arrow-right"></i> Logout
         </a>
       </li>
     </ul>

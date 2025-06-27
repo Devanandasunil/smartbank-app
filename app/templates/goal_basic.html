@@ -1,90 +1,106 @@
-{% extends "base.html" %}
-{% block title %}Set Financial Goal{% endblock %}
-{% block content %}
-<div class="container mt-5" style="max-width:600px;">
-    <h2 class="mb-4">Set a New Financial Goal</h2>
-    <form method="POST" novalidate>
-        {{ form.hidden_tag() }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financial Goals</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .goal-card { transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+    .goal-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); }
+    .btn-primary { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+    .btn-secondary { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+    .btn-tertiary { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+    body { background-color: #f8fafc; }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto px-4 py-12">
 
-        <div class="mb-3">
-            {{ form.target_amount.label(class="form-label") }}
-            {{ form.target_amount(class="form-control", placeholder="e.g. 10000.00") }}
-            {% for error in form.target_amount.errors %}
-                <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-            <div class="form-text">Enter the amount you want to save.</div>
+    <!-- 🔙 Back to Dashboard Button -->
+    <div class="mb-6">
+      <a href="{{ url_for('main.dashboard') }}" class="inline-block text-blue-600 hover:text-blue-800">
+        <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+      </a>
+    </div>
+
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-gray-800 mb-2">Financial Goals</h1>
+      <p class="text-lg text-gray-600">Plan, track, and achieve your financial objectives</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+      <div class="goal-card bg-white rounded-xl p-6 flex flex-col items-center text-center">
+        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+          <i class="fas fa-calculator text-blue-600 text-2xl"></i>
         </div>
+        <h3 class="text-xl font-semibold text-gray-800 mb-2">Goal Calculator</h3>
+        <p class="text-gray-600 mb-6">Calculate how much you need to save to reach your financial goals</p>
+        <a href="{{ url_for('main.goal_calculator') }}" class="btn-primary text-white px-6 py-3 rounded-lg font-medium w-full text-center">Open Calculator</a>
+      </div>
 
-        <div class="mb-3">
-            {{ form.deadline.label(class="form-label") }}
-            {{ form.deadline(class="form-control") }}
-            {% for error in form.deadline.errors %}
-                <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-            <div class="form-text">Choose your goal deadline.</div>
+      <div class="goal-card bg-white rounded-xl p-6 flex flex-col items-center text-center">
+        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+          <i class="fas fa-eye text-green-600 text-2xl"></i>
         </div>
+        <h3 class="text-xl font-semibold text-gray-800 mb-2">View Goals</h3>
+        <p class="text-gray-600 mb-6">Track your progress towards your current financial goals</p>
+        <a href="{{ url_for('main.view_goals') }}" class="btn-secondary text-white px-6 py-3 rounded-lg font-medium w-full text-center">View My Goals</a>
+      </div>
 
-        <div class="mb-3">
-            {{ form.saving_mode.label(class="form-label") }}
-            {{ form.saving_mode(class="form-select") }}
-            {% for error in form.saving_mode.errors %}
-                <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-            <div class="form-text">Choose your saving mode.</div>
+      <div class="goal-card bg-white rounded-xl p-6 flex flex-col items-center text-center">
+        <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+          <i class="fas fa-bullseye text-amber-600 text-2xl"></i>
         </div>
+        <h3 class="text-xl font-semibold text-gray-800 mb-2">Set New Goal</h3>
+        <p class="text-gray-600 mb-6">Create a new savings target or financial objective</p>
+        <a href="{{ url_for('main.set_goal') }}" class="btn-tertiary text-white px-6 py-3 rounded-lg font-medium w-full text-center">Create Goal</a>
+      </div>
+    </div>
 
-        <div class="mb-3">
-            {{ form.daily_amount.label(class="form-label") }}
-            {{ form.daily_amount(class="form-control", placeholder="Enter daily amount") }}
-            {% for error in form.daily_amount.errors %}
-                <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-            <div class="form-text">Enter amount to save daily (if applicable).</div>
+    <div class="max-w-4xl mx-auto mt-16">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-6">Your Recent Goals</h2>
+
+      {% for goal in goals %}
+      <div class="bg-white rounded-xl shadow p-6 mb-4">
+        <p><strong>Target:</strong> ₹{{ goal.target_amount }}</p>
+        <p><strong>Deadline:</strong> {{ goal.deadline.strftime('%d %b %Y') }}</p>
+        <p><strong>Saving Mode:</strong> {{ goal.saving_mode.value }}</p>
+        <p><strong>Saved:</strong> ₹{{ goal.smart_saver_balance }}</p>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 mt-4">
+          {% set progress = (goal.smart_saver_balance / goal.target_amount) * 100 %}
+          <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ progress }}%"></div>
         </div>
+        <div class="mt-4 space-x-4">
+          <a href="{{ url_for('main.edit_goal', goal_id=goal.id) }}" class="text-blue-600 font-medium">Edit</a>
 
-        <div class="mb-3">
-            {{ form.weekly_amount.label(class="form-label") }}
-            {{ form.weekly_amount(class="form-control", placeholder="Enter weekly amount") }}
-            {% for error in form.weekly_amount.errors %}
-                <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-            <div class="form-text">Enter amount to save weekly (if applicable).</div>
+          <!-- Withdraw Button Trigger -->
+          <button onclick="document.getElementById('withdrawModal-{{ goal.id }}').classList.remove('hidden')" class="text-red-600 font-medium">Withdraw</button>
+
+          <form method="POST" action="{{ url_for('main.delete_goal', goal_id=goal.id) }}" class="inline"
+                onsubmit="return confirm('Are you sure you want to cancel and delete this goal? This action cannot be undone.');">
+            <button type="submit" class="text-gray-500 font-medium">Cancel</button>
+          </form>
         </div>
+      </div>
 
-        <div class="mb-3">
-            {{ form.monthly_amount.label(class="form-label") }}
-            {{ form.monthly_amount(class="form-control", placeholder="Enter monthly amount") }}
-            {% for error in form.monthly_amount.errors %}
-                <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-            <div class="form-text">Enter amount to save monthly (if applicable).</div>
+      <!-- Withdraw Confirmation Modal -->
+      <div id="withdrawModal-{{ goal.id }}" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+          <h3 class="text-xl font-semibold text-gray-800 mb-4">Confirm Withdrawal</h3>
+          <p class="text-gray-600 mb-6">Are you sure you want to withdraw all saved money from this goal? This will reduce your progress.</p>
+          <div class="flex justify-end space-x-4">
+            <button onclick="document.getElementById('withdrawModal-{{ goal.id }}').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Cancel</button>
+
+            <form method="POST" action="{{ url_for('main.withdraw_from_smart_saver', goal_id=goal.id) }}">
+              <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Yes, Withdraw</button>
+            </form>
+          </div>
         </div>
-
-        <div class="mb-3">
-            {{ form.yearly_amount.label(class="form-label") }}
-            {{ form.yearly_amount(class="form-control", placeholder="Enter yearly amount") }}
-            {% for error in form.yearly_amount.errors %}
-                <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-            <div class="form-text">Enter amount to save yearly (if applicable).</div>
-        </div>
-
-        {{ form.submit(class="btn btn-success w-100") }}
-    </form>
-
-    <hr>
-
-    <h3>Your Existing Financial Goals</h3>
-    <ul class="list-group">
-        {% for goal in goals %}
-            <li class="list-group-item">
-                <strong>Target:</strong> ₹{{ "%.2f"|format(goal.target_amount) }} <br>
-                <strong>Deadline:</strong> {{ goal.deadline.strftime('%B %d, %Y') }} <br>
-                <strong>Saving Mode:</strong> {{ goal.saving_mode.value }}
-            </li>
-        {% else %}
-            <li class="list-group-item text-muted">No financial goals set yet.</li>
-        {% endfor %}
-    </ul>
-</div>
-{% endblock %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>

@@ -16,6 +16,13 @@
     <label for="end_date">End Date:</label>
     <input type="date" name="end_date" id="end_date" value="{{ request.args.get('end_date', '') }}">
 
+    <label for="transaction_type">Transaction Type:</label>
+    <select name="transaction_type" id="transaction_type">
+      <option value="">All</option>
+      <option value="deposit" {% if request.args.get('transaction_type') == 'deposit' %}selected{% endif %}>Deposit</option>
+      <option value="withdraw" {% if request.args.get('transaction_type') == 'withdraw' %}selected{% endif %}>Withdraw</option>
+    </select>
+
     <button type="submit" class="btn btn-primary btn-sm">Filter</button>
     <a href="{{ url_for('main.transactions') }}" class="btn btn-secondary btn-sm">Reset</a>
   </form>
@@ -36,11 +43,17 @@
     <tbody>
       {% for tx in transactions %}
       <tr>
-        <td>{{ "TNX" + tx.timestamp.strftime('%Y%m%d') + ("%04d"|format(tx.id)) }}</td>
+        <td>{{ "TNX" + tx.local_timestamp.strftime('%Y%m%d') + ("%04d"|format(tx.id)) }}</td>
         <td>{{ tx.type }}</td>
-        <td>₹{{ tx.amount }}</td>
+        <td>
+          {% if tx.type.lower() in ['deposit', 'received'] %}
+            <span class="text-success">+₹{{ "%.2f"|format(tx.amount) }}</span>
+          {% else %}
+            <span class="text-danger">-₹{{ "%.2f"|format(tx.amount) }}</span>
+          {% endif %}
+        </td>
         <td>{{ tx.recipient_account or '-' }}</td>
-        <td>{{ tx.timestamp.strftime('%Y-%m-%d %H:%M:%S') if tx.timestamp else 'N/A' }}</td>
+        <td>{{ tx.local_timestamp.strftime('%Y-%m-%d %I:%M %p') if tx.local_timestamp else 'N/A' }}</td>
         <td>
           {% if tx.status %}
             {% if tx.status.lower() == 'success' %}
@@ -56,14 +69,12 @@
         </td>
         <td>
           {% if tx.id in reported_ids %}
-          <form method="POST" action="{{ url_for('main.undo_report_transaction', transaction_id=tx.id) }}">
-            <button type="submit" class="btn btn-warning btn-sm">Undo Report</button>
-          </form>
+            <span class="text-muted">Reported</span>
           {% else %}
-          <form method="POST" action="{{ url_for('customer.report_transaction', transaction_id=tx.id) }}">
-            <input type="text" name="reason" placeholder="Reason (optional)" class="form-control mb-1">
-            <button type="submit" class="btn btn-danger btn-sm">Report</button>
-          </form>
+            <form method="POST" action="{{ url_for('customer.report_transaction', transaction_id=tx.id) }}">
+              <input type="text" name="reason" placeholder="Reason (optional)" class="form-control mb-1">
+              <button type="submit" class="btn btn-danger btn-sm">Report</button>
+            </form>
           {% endif %}
         </td>
       </tr>
@@ -74,31 +85,6 @@
     <p class="text-muted">No transactions found.</p>
   {% endif %}
 
-  <!-- Back Button -->
   <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary mt-4">Back to Dashboard</a>
-
-  {% if saved_contacts %}
-  <hr>
-  <h3>Recent Recipients</h3>
-  <ul>
-    {% for contact in saved_contacts %}
-      <li>
-        <button type="button" onclick="prefillTransfer('{{ contact.name }}', '{{ contact.account_number }}')">
-          <img src="{{ url_for('static', filename='img/user-icon.png') }}" width="30">
-          {{ contact.name }} ({{ contact.account_number }})
-        </button>
-      </li>
-    {% endfor %}
-  </ul>
-  {% endif %}
 </div>
-
-<script>
-  function prefillTransfer(name, accNo) {
-    if (document.getElementById('beneficiary_name') && document.getElementById('account_number')) {
-      document.getElementById('beneficiary_name').value = name;
-      document.getElementById('account_number').value = accNo;
-    }
-  }
-</script>
 {% endblock %}

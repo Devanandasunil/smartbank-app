@@ -4,13 +4,13 @@ from flask import (
 from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.utils import secure_filename
 from .forms import (
-    RegisterForm, LoginForm, DepositForm, WithdrawForm, TransferForm,
-    GoalBasicForm, SavingModeForm, ProfileForm
+    RegisterForm, LoginForm, ForgotPasswordForm, DepositForm, WithdrawForm, TransferForm,
+    ProfileForm, SetGoalForm,
 )
 from .models import (
     User, Account, Transaction, Loan, SpamReport, FinancialGoal, db, SavingMode
 )
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 from functools import wraps
 import os
 import base64
@@ -19,14 +19,8 @@ from io import BytesIO
 from PIL import Image
 import numpy as np
 import face_recognition
+import pytz
 from app.models import Transaction, SavedContact
-# ✅ Required imports at top of file
-from datetime import datetime, timedelta
-from flask import render_template, request, flash
-from flask_login import login_required, current_user
-from app.models import Transaction, SavedContact
-
-
 
 main = Blueprint("main", __name__)
 
@@ -53,12 +47,8 @@ def get_or_create_account(user):
 @main.route("/")
 @nocache
 def home():
-    if current_user.is_authenticated:
-        if hasattr(current_user, 'is_staff') and current_user.is_staff:
-            return redirect(url_for('staff.dashboard'))
-        else:
-            return redirect(url_for('main.dashboard'))
     return render_template('home.html')
+
 
 @main.route('/landing')
 def landing():
@@ -108,81 +98,41 @@ def logout():
     flash("Logged out.", "success")
     return redirect(url_for("main.landing"))
 
-from .utils import get_or_create_account 
-
 @main.route("/dashboard")
 @login_required
 def dashboard():
-    # ✅ Use helper to make sure account exists
     account = get_or_create_account(current_user)
+    balance = account.balance if account else 0.0
+    account_number = account.account_number if account else None
+
+    # Total saved in goals
+    goal_savings = sum(goal.smart_saver_balance for goal in current_user.goals) if hasattr(current_user, 'goals') else 0.0
+    usable_balance = balance - goal_savings
 
     return render_template(
         "dashboard.html",
         username=current_user.username,
-        account_number=account.account_number,
-        balance=account.balance
+        account_number=account_number,
+        balance=balance,
+        usable_balance=usable_balance,
+        goal_savings=goal_savings
     )
 
 
-
-# Route: Financial Goals - Set & View
-@main.route("/goals", methods=["GET", "POST"])
-@login_required
+@main.route("/forgot_password", methods=["GET", "POST"])
 @nocache
-def goals():
-    form = GoalBasicForm()
+def forgot_password():
+    form = ForgotPasswordForm()
     if form.validate_on_submit():
-        # Save the goal information
-        goal = FinancialGoal(
-            user_id=current_user.id,
-            target_amount=form.target_amount.data,
-            deadline=form.deadline.data,
-            saving_mode=SavingMode[form.saving_mode.data]  # Use Enum
-        )
-        db.session.add(goal)
-        db.session.commit()
-        flash("Goal set successfully.", "success")
-        return redirect(url_for("main.goals"))  # Redirect to goals page
-
-    goals = FinancialGoal.query.filter_by(user_id=current_user.id).all()
-    return render_template("goal_basic.html", form=form, goals=goals)
-
-# Route: Configure Save Mode Amounts
-@main.route("/goals/saving_mode/<int:goal_id>", methods=["GET", "POST"])
-@login_required
-@nocache
-def saving_mode(goal_id):
-    goal = FinancialGoal.query.get_or_404(goal_id)
-    if goal.user_id != current_user.id:
-        flash("Unauthorized access to this goal.", "danger")
-        return redirect(url_for("main.goals"))
-
-    form = SavingModeForm(obj=goal)
-    if form.validate_on_submit():
-        goal.saving_mode = SavingMode[form.saving_mode.data]  # Update using enum
-        goal.daily_amount = form.daily_amount.data
-        goal.weekly_amount = form.weekly_amount.data
-        goal.monthly_amount = form.monthly_amount.data
-        goal.yearly_amount = form.yearly_amount.data
-        db.session.commit()
-        flash("Saving mode updated successfully.", "success")
-        return redirect(url_for("main.goals"))
-
-    return render_template("goal_saving_mode.html", form=form, goal=goal)
-
-# Route: Delete Financial Goal
-@main.route('/goals/delete/<int:goal_id>', methods=['POST'])
-@login_required
-def delete_goal(goal_id):
-    goal = FinancialGoal.query.get_or_404(goal_id)
-    if goal.user_id != current_user.id:
-        flash("Unauthorized action.", "danger")
-        return redirect(url_for("main.goals"))
-    
-    db.session.delete(goal)
-    db.session.commit()
-    flash("Goal deleted successfully.", "info")
-    return redirect(url_for("main.goals"))
+        user = User.query.filter_by(email=form.email.data).first()
+        if user:
+            user.set_password(form.new_password.data)
+            db.session.commit()
+            flash("Password reset successful! Please login.", "success")
+            return redirect(url_for("main.login"))
+        else:
+            flash("No account found with that email.", "danger")
+    return render_template("forgot_password.html", form=form)
 
 # Deposit Route
 @main.route('/deposit', methods=['GET', 'POST'])
@@ -196,19 +146,11 @@ def deposit():
         else:
             account = current_user.account
             account.balance += amount
-
-            txn = Transaction(
-                user_id=current_user.id,
-                type='Deposit',
-                amount=amount,
-                recipient_account=None
-            )
+            txn = Transaction(user_id=current_user.id, type='Deposit', amount=amount, recipient_account=None)
             db.session.add(txn)
             db.session.commit()
-
             flash("Deposit successful!", "success")
             return redirect(url_for('main.dashboard'))
-
     return render_template('deposit.html', form=form)
 
 # Withdraw Route
@@ -223,19 +165,11 @@ def withdraw():
             flash("Invalid withdrawal amount", "danger")
         else:
             account.balance -= amount
-
-            txn = Transaction(
-                user_id=current_user.id,
-                type='Withdraw',
-                amount=amount,
-                recipient_account=None
-            )
+            txn = Transaction(user_id=current_user.id, type='Withdraw', amount=amount, recipient_account=None)
             db.session.add(txn)
             db.session.commit()
-
             flash("Withdrawal successful!", "success")
             return redirect(url_for('main.dashboard'))
-
     return render_template('withdraw.html', form=form)
 
 # Transfer Route
@@ -258,22 +192,14 @@ def transfer():
         else:
             sender.balance -= amount
             recipient.balance += amount
-
-            txn = Transaction(
-                user_id=current_user.id,
-                type='Transfer',
-                amount=amount,
-                recipient_account=recipient_acc
-            )
+            txn = Transaction(user_id=current_user.id, type='Transfer', amount=amount, recipient_account=recipient_acc)
             db.session.add(txn)
             db.session.commit()
-
             flash("Transfer successful!", "success")
             return redirect(url_for('main.dashboard'))
-
     return render_template('transfer.html', form=form)
 
-# Route: Loan Application
+# Loan
 @main.route("/loan", methods=["GET", "POST"])
 @login_required
 @nocache
@@ -298,45 +224,39 @@ def loan():
         new_loan = Loan(user_id=current_user.id, amount=amount_float, reason=reason)
         db.session.add(new_loan)
         db.session.commit()
-
         flash("Loan application submitted successfully!", "success")
         return redirect(url_for("main.dashboard"))
 
     return render_template("loan.html")
 
+# Profile
 @main.route("/profile", methods=["GET", "POST"])
 @login_required
 @nocache
 def profile():
     form = ProfileForm()
-
     if form.validate_on_submit():
-        # Check if email is changing and is unique
         if form.email.data != current_user.email:
             if User.query.filter_by(email=form.email.data).first():
                 flash("Email already exists.", "danger")
                 return redirect(url_for("main.profile"))
             current_user.email = form.email.data
 
-        # Update other fields
         current_user.name = form.name.data
         current_user.place = form.place.data
         current_user.mobile_number = form.mobile_number.data
 
-        # Handle image upload
         if form.profile_image.data:
             filename = secure_filename(form.profile_image.data.filename)
             upload_path = os.path.join(current_app.root_path, "static/uploads", filename)
             form.profile_image.data.save(upload_path)
             current_user.profile_image = filename
 
-        
         db.session.commit()
         flash("Profile updated successfully!", "success")
         return redirect(url_for("main.profile"))
 
     elif request.method == "GET":
-        # Pre-fill form with user data
         form.name.data = current_user.name
         form.place.data = current_user.place
         form.mobile_number.data = current_user.mobile_number
@@ -344,8 +264,7 @@ def profile():
 
     return render_template("profile.html", form=form, user=current_user)
 
-
-# Route: List My Loans
+# Loans
 @main.route("/my_loans")
 @login_required
 @nocache
@@ -353,78 +272,72 @@ def my_loans():
     loans = Loan.query.filter_by(user_id=current_user.id).order_by(Loan.id.desc()).all()
     return render_template("my_loans.html", loans=loans)
 
-# Route: Transaction History
-@main.route("/transactions", methods=['GET', 'POST'])
+# Transactions
+@main.route("/transactions", methods=['GET'])
 @login_required
 @nocache
 def transactions():
     name_filter = request.args.get('name', '').strip()
     start_date_str = request.args.get('start_date', '').strip()
     end_date_str = request.args.get('end_date', '').strip()
+    tx_type = request.args.get('transaction_type', '').strip().lower()
 
-    # Start base query
     query = Transaction.query.filter_by(user_id=current_user.id)
 
-    # Filter by beneficiary name
     if name_filter:
         query = query.filter(Transaction.beneficiary_name.ilike(f"%{name_filter}%"))
 
-    # Filter by start date
+    if tx_type:
+        if tx_type == "deposit":
+            query = query.filter(Transaction.type.ilike("Deposit"))
+        elif tx_type == "withdraw":
+            query = query.filter(Transaction.type.ilike("Withdraw"))
+        elif tx_type == "received":
+            query = query.filter(Transaction.type.ilike("Received"))
+
     if start_date_str:
         try:
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
             query = query.filter(Transaction.timestamp >= start_date)
         except ValueError:
-            flash("Invalid start date format. Use DD-MM-YYYY.", "danger")
+            flash("Invalid start date format. Use YYYY-MM-DD.", "danger")
 
-    # Filter by end date
     if end_date_str:
         try:
             end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
             query = query.filter(Transaction.timestamp < end_date)
         except ValueError:
-            flash("Invalid end date format. Use DD-MM-YYYY.", "danger")
+            flash("Invalid end date format. Use YYYY-MM-DD.", "danger")
 
-    transactions = query.order_by(Transaction.id.desc()).all()
+    transactions = query.order_by(Transaction.timestamp.desc()).all()
 
-    # For "recent recipients"
+    indian_time = pytz.timezone('Asia/Kolkata')
+    for tx in transactions:
+        if tx.timestamp:
+            tx.local_timestamp = tx.timestamp.replace(tzinfo=pytz.utc).astimezone(indian_time)
+
     saved_contacts = SavedContact.query.filter_by(user_id=current_user.id).all()
-
-    # 🔥 This is the missing piece!
     reported_ids = [r.transaction_id for r in current_user.spam_reports_sent]
 
+    return render_template("transactions.html", transactions=transactions, saved_contacts=saved_contacts, reported_ids=reported_ids)
 
-    return render_template(
-        "transactions.html",
-        transactions=transactions,
-        saved_contacts=saved_contacts,
-        reported_ids=reported_ids
-    )
-
-
-
-# Route: Face Login
+# Face login
 @main.route('/face_login', methods=['POST'])
 def face_login():
     face_data_url = request.form.get("face_image")
-
     if not face_data_url:
         flash("Face image not received", "danger")
         return redirect(url_for("main.login"))
-
     try:
         header, encoded = face_data_url.split(",", 1)
         img_bytes = base64.b64decode(encoded)
         img = Image.open(BytesIO(img_bytes)).convert("RGB")
         img_np = np.array(img)
-
         encodings = face_recognition.face_encodings(img_np)
         if not encodings:
             flash("No face detected in image", "danger")
             return redirect(url_for("main.login"))
-
         login_encoding = encodings[0]
-
         users = User.query.all()
         for user in users:
             if user.face_encoding:
@@ -434,23 +347,198 @@ def face_login():
                     login_user(user)
                     flash("Face login successful!", "success")
                     return redirect(url_for("main.dashboard"))
-
         flash("No matching user found", "danger")
         return redirect(url_for("main.login"))
-
     except Exception as e:
         flash("Face login failed", "danger")
         print("Face login error:", str(e))
         return redirect(url_for("main.login"))
 
-# Register the blueprint in your main application file (e.g., app.py) where 'app' is defined:
-# from .routes import main
-# app.register_blueprint(main)
+# -------------------------------
+# Financial Goals
+# -------------------------------
 
-@main.route('/test')
-def test_error():
-    print("Home route triggered")
-    return 1 / 0  # deliberate ZeroDivisionError
-   
+@main.route("/financial_goals")
+@login_required
+def financial_goals_landing():
+    goals = FinancialGoal.query.filter_by(user_id=current_user.id).all()
+    return render_template("goal_basic.html", goals=goals)
 
+@main.route("/goal_calculator")
+@login_required
+def goal_calculator():
+    return render_template("goal_calculator.html")
+
+
+from datetime import datetime, timedelta
+from calendar import month_abbr
+
+@main.route("/view_goals")
+@login_required
+def view_goals():
+    goals = FinancialGoal.query.filter_by(user_id=current_user.id).all()
+    warnings = []  # ✅ Initialize warnings list
+
+    for goal in goals:
+        # Chart logic
+        start = datetime.utcnow().date()
+        end = goal.deadline
+        labels = []
+        current = start
+        while current <= end:
+            labels.append(month_abbr[current.month])
+            if current.month == 12:
+                current = current.replace(year=current.year + 1, month=1)
+            else:
+                current = current.replace(month=current.month + 1)
+        
+        monthly_value = goal.smart_saver_balance / max(1, len(labels))
+        chart_data = [round(monthly_value, 2)] * len(labels)
+        goal.chart_labels = labels
+        goal.chart_data = chart_data
+
+        # ✅ Warning logic
+        days_left = (goal.deadline - datetime.utcnow().date()).days
+        if days_left <= 5 and goal.smart_saver_balance < goal.target_amount:
+            remaining = goal.target_amount - goal.smart_saver_balance
+            warnings.append(
+                f"⚠️ Goal '{goal.name}' is nearing deadline! ₹{remaining:.0f} left to save."
+            )
+
+    # ✅ Return after processing all goals
+    return render_template("view_goal.html", goals=goals, warnings=warnings)
+
+
+@main.route("/goal/<int:goal_id>")
+@login_required
+def view_single_goal(goal_id):
+    goal = FinancialGoal.query.get_or_404(goal_id)
+    if goal.user_id != current_user.id:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for("main.view_goals"))
+    goal.chart_labels = ["Jan", "Feb", "Mar", "Apr"]
+    goal.chart_data = [1000, 2500, 3000, int(goal.smart_saver_balance)]
+    return render_template("single_goal.html", goal=goal)
+
+@main.route("/goal/edit/<int:goal_id>", methods=["GET", "POST"])
+@login_required
+def edit_goal(goal_id):
+    goal = FinancialGoal.query.get_or_404(goal_id)
+    if goal.user_id != current_user.id:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for("main.view_goals"))
+    if request.method == "POST":
+        goal.name = request.form.get("goalName")
+        goal.target_amount = float(request.form.get("goalAmount") or 0)
+        goal.deadline = datetime.strptime(request.form.get("deadline"), "%Y-%m-%d").date()
+        db.session.commit()
+        flash("Goal updated successfully.", "success")
+        return redirect(url_for("main.view_goals"))
+    return render_template("edit_goal.html", goal=goal)
+
+@main.route("/goal/delete/<int:goal_id>", methods=["POST"])
+@login_required
+def delete_goal(goal_id):
+    goal = FinancialGoal.query.get_or_404(goal_id)
+    if goal.user_id != current_user.id:
+        flash("Unauthorized", "danger")
+        return redirect(url_for("main.view_goals"))
+    db.session.delete(goal)
+    db.session.commit()
+    flash("Goal deleted successfully.", "info")
+    return redirect(url_for("main.view_goals"))
+
+@main.route("/smart_saver/withdraw/<int:goal_id>", methods=["POST"])
+@login_required
+def withdraw_from_smart_saver(goal_id):
+    goal = FinancialGoal.query.get_or_404(goal_id)
+    if goal.user_id != current_user.id:
+        flash("Unauthorized", "danger")
+        return redirect(url_for("main.view_goals"))
+    if goal.smart_saver_balance <= 0:
+        flash("Nothing to withdraw.", "warning")
+        return redirect(url_for("main.view_goals"))
+    amount = round(goal.smart_saver_balance, 2)
+    current_user.account.balance += amount
+    goal.smart_saver_balance = 0.0
+    txn = Transaction(
+        user_id=current_user.id,
+        type="Smart Saver Withdrawal",
+        amount=amount,
+        status="Success",
+        description="Withdrawn from Smart Saver"
+    )
+    db.session.add(txn)
+    db.session.commit()
+    flash(f"₹{amount} withdrawn from Smart Saver.", "success")
+    return redirect(url_for("main.view_goals"))
+
+@main.route("/set_goal", methods=["GET", "POST"])
+@login_required
+def set_goal():
+    form = SetGoalForm()
+    if form.validate_on_submit():
+        name = form.goalName.data
+        target = form.goalAmount.data
+        current = form.currentSavings.data or 0.0
+        deadline = form.deadline.data
+        frequency = form.savingsMode.data or "NONE"
+        goal = FinancialGoal(
+            user_id=current_user.id,
+            name=name,
+            target_amount=target,
+            deadline=deadline,
+            saving_mode=SavingMode[frequency],
+            smart_saver_balance=current,
+            last_saved_at=datetime.utcnow(),
+        )
+        db.session.add(goal)
+        db.session.commit()
+        flash("Goal set successfully.", "success")
+        return redirect(url_for("main.view_goals"))
+    return render_template("set_goal.html", form=form)
+
+@main.route("/goal/deposit/<int:goal_id>", methods=["GET", "POST"])
+@login_required
+def deposit_to_goal(goal_id):
+    goal = FinancialGoal.query.get_or_404(goal_id)
+
+    # Ensure user owns this goal
+    if goal.user_id != current_user.id:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for("main.view_goals"))
+
+    if request.method == "POST":
+        try:
+            amount = float(request.form.get("amount") or 0)
+        except ValueError:
+            flash("Invalid input. Please enter a numeric value.", "warning")
+            return redirect(url_for("main.deposit_to_goal", goal_id=goal.id))
+
+        if amount <= 0:
+            flash("Enter a valid amount.", "warning")
+            return redirect(url_for("main.deposit_to_goal", goal_id=goal.id))
+
+        if current_user.account.balance < amount:
+            flash("Insufficient account balance.", "danger")
+            return redirect(url_for("main.deposit_to_goal", goal_id=goal.id))
+
+        # Process deposit
+        goal.smart_saver_balance += amount
+        current_user.account.balance -= amount
+
+        txn = Transaction(
+            user_id=current_user.id,
+            type="Smart Saver Deposit",
+            amount=amount,
+            status="Success",
+            description=f"Deposited to goal '{goal.name}'"
+        )
+        db.session.add(txn)
+        db.session.commit()
+
+        flash(f"₹{amount} deposited to your goal.", "success")
+        return redirect(url_for("main.view_goals"))
+
+    return render_template("deposit_goal.html", goal=goal)
 

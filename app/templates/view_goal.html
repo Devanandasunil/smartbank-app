@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>All Goals</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="container mx-auto px-4 py-4">
+
+    <!-- Back button -->
+    <a href="{{ url_for('main.financial_goals_landing') }}" class="text-blue-600 hover:underline inline-block mb-4">
+      ← Back
+    </a>
+
+    <h1 class="text-2xl font-bold mb-6 text-center">🎯 Your Financial Goals</h1>
+
+    <!-- 🔔 Warnings if any -->
+    {% if warnings %}
+      <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded">
+        <ul class="list-disc ml-5">
+          {% for warn in warnings %}
+            <li>{{ warn }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if goals %}
+      {% for goal in goals %}
+        {% set progress = (goal.smart_saver_balance / goal.target_amount * 100 if goal.target_amount else 0) | round(2) %}
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <p class="text-sm text-gray-600">Goal</p>
+              <p class="text-lg font-semibold">{{ goal.name or "Unnamed Goal" }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Deadline</p>
+              <p class="text-lg font-semibold">{{ goal.deadline.strftime('%d %b %Y') }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Target</p>
+              <p class="text-lg font-semibold">₹{{ "{:,.0f}".format(goal.target_amount) }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Saved</p>
+              <p class="text-lg font-semibold">₹{{ "{:,.0f}".format(goal.smart_saver_balance) }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Saving Mode</p>
+              <p class="text-lg font-semibold">{{ goal.saving_mode.value.title() }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600 mb-1">Progress</p>
+              <div class="w-full bg-gray-200 rounded-full h-3 mb-1">
+                <div class="bg-green-500 h-3 rounded-full" style="width: {{ progress }}%"></div>
+              </div>
+              <div class="flex justify-between items-center text-sm">
+                <span class="text-gray-500">{{ progress }}%</span>
+                {% if progress >= 100 %}
+                  <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Completed</span>
+                {% elif progress >= 50 %}
+                  <span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">In Progress</span>
+                {% else %}
+                  <span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Just Started</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="flex flex-wrap gap-4">
+            <a href="{{ url_for('main.view_single_goal', goal_id=goal.id) }}"
+              class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+              View Full Details
+            </a>
+
+            <a href="{{ url_for('main.deposit_to_goal', goal_id=goal.id) }}"
+              class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              Deposit
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-gray-500 text-center">
+        No goals yet.
+        <a href="{{ url_for('main.set_goal') }}" class="text-blue-600 underline">Create One</a>
+      </p>
+    {% endif %}
+  </div>
+</body>
+</html>

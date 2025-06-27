@@ -11,6 +11,7 @@ import enum
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+
 # -- Enum for Saving Modes --
 class SavingMode(enum.Enum):
     NONE = "NONE"
@@ -18,6 +19,16 @@ class SavingMode(enum.Enum):
     WEEKLY = "WEEKLY"
     MONTHLY = "MONTHLY"
     YEARLY = "YEARLY"
+
+
+# -- Utility: Generate Unique Account Number --
+def generate_account_number():
+    for _ in range(10):
+        acc_num = str(random.randint(1000000000, 9999999999))
+        if not Account.query.filter_by(account_number=acc_num).first():
+            return acc_num
+    raise Exception("Failed to generate a unique account number")
+
 
 # -- User Model --
 class User(UserMixin, db.Model):
@@ -40,6 +51,7 @@ class User(UserMixin, db.Model):
     transactions = db.relationship('Transaction', backref='user', lazy=True)
     goals = db.relationship('FinancialGoal', backref='user', lazy=True)
     contacts = db.relationship('SavedContact', backref='user', lazy=True)
+    spam_reports_sent = db.relationship('SpamReport', backref='reporter_user', foreign_keys='SpamReport.user_id', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -57,13 +69,6 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return f"<User {self.email}>"
 
-# -- Utility: Generate Unique Account Number --
-def generate_account_number():
-    for _ in range(10):
-        acc_num = str(random.randint(1000000000, 9999999999))
-        if not Account.query.filter_by(account_number=acc_num).first():
-            return acc_num
-    raise Exception("Failed to generate a unique account number")
 
 # -- Account Model --
 class Account(db.Model):
@@ -73,6 +78,7 @@ class Account(db.Model):
     account_number = db.Column(db.String(20), unique=True, nullable=False, default=generate_account_number)
     balance = db.Column(db.Float, default=0.0)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
 
 # -- Transaction Model --
 class Transaction(db.Model):
@@ -90,11 +96,9 @@ class Transaction(db.Model):
     beneficiary_name = db.Column(db.String(120))
     description = db.Column(db.String(255), default="Bank Transaction")
 
-
-    # `spam_reports` relationship handled in SpamReport
-
     def __repr__(self):
         return f"<Transaction {self.type} ₹{self.amount}>"
+
 
 # -- Loan Model --
 class Loan(db.Model):
@@ -110,23 +114,35 @@ class Loan(db.Model):
     def __repr__(self):
         return f"<Loan ₹{self.amount} - {self.status}>"
 
-# -- Financial Goal Model --
+# -- Financial Goal Model--
 class FinancialGoal(db.Model):
     __tablename__ = "financial_goal"
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+    name = db.Column(db.String(150), nullable=False)
+
     target_amount = db.Column(db.Float)
     deadline = db.Column(db.Date)
     saving_mode = db.Column(db.Enum(SavingMode), default=SavingMode.NONE, nullable=False)
+
     daily_amount = db.Column(db.Float, default=0.0)
     weekly_amount = db.Column(db.Float, default=0.0)
     monthly_amount = db.Column(db.Float, default=0.0)
     yearly_amount = db.Column(db.Float, default=0.0)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    smart_saver_balance = db.Column(db.Float, default=0.0)
+    last_saved_at = db.Column(db.DateTime, nullable=True)
 
     def __repr__(self):
         return f"<Goal ₹{self.target_amount} by {self.deadline}>"
+
+    @property
+    def amount_saved(self):
+        return self.smart_saver_balance
+
 
 # -- Spam Report Model --
 class SpamReport(db.Model):
@@ -144,6 +160,7 @@ class SpamReport(db.Model):
 
     def __repr__(self):
         return f"<SpamReport Transaction {self.transaction_id}>"
+
 
 # -- Saved Contact Model --
 class SavedContact(db.Model):
